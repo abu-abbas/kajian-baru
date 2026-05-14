@@ -1,0 +1,26 @@
+{
+  "name": "@kajian-baru/parser",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "tsx src/test-parser.ts"
+  },
+  "dependencies": {
+    "@kajian-baru/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^25.7.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0"
+  }
+}
