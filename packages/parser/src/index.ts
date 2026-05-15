@@ -97,6 +97,31 @@ export function parseMessage(rawText: string): ParseResult {
     const regionMatch = block.match(/○●\s*([^●○]+)\s*●○/)
     if (regionMatch && regionMatch[1]) {
       currentRegion = normalizeRegion(regionMatch[1])
+    } else {
+      // 🛡️ INTELLIGENT CITY INFERRING (Garis Pertahanan Kedua):
+      // Jika blok berdiri sendiri (single payload via Telegram Bot) tanpa tag wilayah eksplisit,
+      // pindai isi teks di dalam blok ini secara cerdas untuk mendeteksi kota/kecamatan kunci!
+      const blockUpper = block.toUpperCase()
+      let inferredCity = ''
+      
+      if (blockUpper.includes('JAKARTA TIMUR') || blockUpper.includes('JAK-TIM') || blockUpper.includes('JAK TIM')) inferredCity = 'Jakarta Timur'
+      else if (blockUpper.includes('JAKARTA SELATAN') || blockUpper.includes('JAK-SEL') || blockUpper.includes('JAK SEL')) inferredCity = 'Jakarta Selatan'
+      else if (blockUpper.includes('JAKARTA BARAT') || blockUpper.includes('JAK-BAR') || blockUpper.includes('JAK BAR')) inferredCity = 'Jakarta Barat'
+      else if (blockUpper.includes('JAKARTA UTARA') || blockUpper.includes('JAK-UT') || blockUpper.includes('JAK UT')) inferredCity = 'Jakarta Utara'
+      else if (blockUpper.includes('JAKARTA PUSAT') || blockUpper.includes('JAK-PUS') || blockUpper.includes('JAK PUS')) inferredCity = 'Jakarta Pusat'
+      else if (blockUpper.includes('TANGERANG SELATAN') || blockUpper.includes('TANG-SEL') || blockUpper.includes('TANGSEL')) inferredCity = 'Tangerang Selatan'
+      else if (blockUpper.includes('TANGERANG') || blockUpper.includes('TIGARAKSA') || blockUpper.includes('CIKUPA') || blockUpper.includes('CIPONDOH')) inferredCity = 'Tangerang'
+      else if (blockUpper.includes('BOGOR') || blockUpper.includes('CIBINONG') || blockUpper.includes('CILEUNGSI') || blockUpper.includes('SENTUL')) inferredCity = 'Bogor'
+      else if (blockUpper.includes('DEPOK') || blockUpper.includes('CINERE') || blockUpper.includes('SAWANGAN')) inferredCity = 'Depok'
+      else if (blockUpper.includes('BEKASI') || blockUpper.includes('CIKARANG') || blockUpper.includes('TAMBUN') || blockUpper.includes('CIBITUNG')) inferredCity = 'Bekasi'
+
+      if (inferredCity) {
+        // 🔑 Aturan Emas: Overwrite hanya jika sedang mem-parse satu blok saja (single payload),
+        // atau jika status currentRegion saat ini masih bertumpu pada default 'Tangerang'!
+        if (blocks.length === 1 || currentRegion === 'Tangerang') {
+          currentRegion = inferredCity
+        }
+      }
     }
 
     try {
