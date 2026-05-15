@@ -125,6 +125,7 @@ export function Home() {
         let query = supabase
           .from('kajian')
           .select('*', { count: 'exact', head: true })
+          .eq('is_published', true) // 🔒 HANYA SCAN DATA YANG SUDAH PUBLISH!
           .gt('created_at', lastLoadedTimestamp.current)
 
         // Terapkan filter aktif saat ini agar gelembung notifikasi relevan!

@@ -4,7 +4,7 @@ import { Badge } from './ui/badge'
 import { 
   X, Calendar, Clock, MapPin, Phone, Compass, 
   Navigation, Share2, BellRing, BellMinus, CheckCircle2,
-  Mic, Building2, Map, Moon, AlertCircle
+  Mic, Building2, Map, Moon, AlertCircle, Ban
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from './ui/button'
@@ -233,8 +233,9 @@ export function KajianDetailDialog({
                   {kajian.audience}
                 </Badge>
                 {kajian.is_cancelled && (
-                  <Badge variant="destructive" className="font-black tracking-wider uppercase border border-red-500/30 animate-pulse text-[9px] px-2 py-1 rounded-lg">
-                    Diliburkan 🚫
+                  <Badge variant="destructive" className="font-black tracking-wider uppercase border border-red-500/30 animate-pulse text-[9px] px-2 py-1 rounded-lg flex items-center gap-1">
+                    <Ban className="h-2.5 w-2.5" />
+                    Diliburkan
                   </Badge>
                 )}
                 <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/10 px-3 py-1 rounded-lg flex items-center gap-1.5 shadow-inner">
@@ -270,7 +271,7 @@ export function KajianDetailDialog({
                           ${isBatal && !isActive ? 'line-through decoration-red-500/50 opacity-60' : ''}
                         `}
                       >
-                        {isBatal && <span className="text-[8px]">🚫</span>}
+                        {isBatal && <Ban className="h-2.5 w-2.5 text-red-500" />}
                         <span>{getLabel(item, idx)}</span>
                       </button>
                     )

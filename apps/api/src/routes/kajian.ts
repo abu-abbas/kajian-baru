@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { supabase } from '../lib/supabase.js'
-import { parseMessage } from '@kajian-baru/parser'
+import { parseMessage, generateFollowKey } from '@kajian-baru/parser'
 import { authMiddleware, adminMiddleware } from '../middleware/auth.js'
 import type { ApiResponse, Kajian } from '@kajian-baru/types'
 import { triggerNotificationsForKajian } from './push.js'
@@ -51,8 +51,10 @@ kajianRoutes.get('/', async (c) => {
     query = query.or(`materi.ilike.%${clean}%,pemateri.ilike.%${clean}%,tempat.ilike.%${clean}%`)
   }
 
-  // Urutkan berdasarkan input TERBARU (Twitter style timeline)
-  query = query.order('created_at', { ascending: false })
+  // Urutkan berdasarkan Tanggal Kajian dahulu, baru berdasarkan input TERBARU!
+  query = query
+    .order('tanggal_masehi', { ascending: false })
+    .order('created_at', { ascending: false })
 
   // Terapkan batasan rentang data (pagination)
   query = query.range(offset, offset + limit - 1)
@@ -233,6 +235,100 @@ kajianRoutes.patch('/:id', authMiddleware, adminMiddleware, async (c) => {
 
   const response: ApiResponse<Kajian> = { success: true, data: data as Kajian, error: null }
   return c.json(response)
+})
+
+/**
+ * POST /kajian/bulk-publish — Menerbitkan banyak draf kajian secara masif & aman (admin only)
+ * Memeriksa tabrakan data terbit duplikat sebelum memvalidasi status publish!
+ */
+kajianRoutes.post('/bulk-publish', authMiddleware, adminMiddleware, async (c) => {
+  const { ids } = await c.req.json<{ ids: string[] }>()
+
+  if (!ids || ids.length === 0) {
+    return c.json({ success: false, data: null, error: 'Daftar ID kosong.' }, 400)
+  }
+
+  try {
+    // 1. Ambil data draf dari database berdasarkan set ID yang masuk
+    const { data: drafts, error: fetchErr } = await supabase
+      .from('kajian')
+      .select('*')
+      .in('id', ids)
+
+    if (fetchErr || !drafts) {
+      return c.json({ success: false, data: null, error: fetchErr?.message || 'Gagal mengambil data draf' }, 500)
+    }
+
+    const uniqueDates = Array.from(new Set(drafts.map(d => d.tanggal_masehi).filter(Boolean)))
+
+    // 2. Ambil data yang SUDAH PUBLISH untuk mengecek duplikasi silang
+    const publishedMap = new Map<string, Kajian>()
+    const makeCompositeKey = (k: any) => {
+      const tempatNorm = generateFollowKey('MASJID', k.tempat, k.kota)
+      const waktuNorm = (k.waktu_mulai ?? '').toLowerCase().replace(/[^a-z0-9]/g, '').trim()
+      return `${k.tanggal_masehi}::${tempatNorm}::${waktuNorm}`
+    }
+
+    if (uniqueDates.length > 0) {
+      const { data: existingPub } = await supabase
+        .from('kajian')
+        .select('*')
+        .eq('is_published', true)
+        .in('tanggal_masehi', uniqueDates)
+
+      for (const item of (existingPub ?? [])) {
+        publishedMap.set(makeCompositeKey(item), item as Kajian)
+      }
+    }
+
+    const safeIdsToPublish: string[] = []
+    const duplicateDraftIds: string[] = []
+
+    for (const draft of drafts) {
+      // Jika sudah publish, skip loop
+      if (draft.is_published) continue
+
+      const key = makeCompositeKey(draft)
+      if (publishedMap.has(key)) {
+        duplicateDraftIds.push(draft.id)
+      } else {
+        safeIdsToPublish.push(draft.id)
+      }
+    }
+
+    // 3. Eksekusi perubahan massal pada entitas draf yang bersih
+    let publishedCount = 0
+    if (safeIdsToPublish.length > 0) {
+      const { error: updateErr } = await supabase
+        .from('kajian')
+        .update({ is_published: true })
+        .in('id', safeIdsToPublish)
+
+      if (updateErr) {
+        throw updateErr
+      }
+      
+      publishedCount = safeIdsToPublish.length
+
+      // 📢 TRIGGER NOTIFICATION SECARA BACKGROUND
+      const publishedRecords = drafts.filter(d => safeIdsToPublish.includes(d.id))
+      void triggerNotificationsForKajian(publishedRecords)
+    }
+
+    return c.json({
+      success: true,
+      data: {
+        published: publishedCount,
+        skippedDuplicates: duplicateDraftIds.length,
+        skippedIds: duplicateDraftIds
+      },
+      error: null
+    })
+
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : 'Kesalahan sistem pada bulk publish'
+    return c.json({ success: false, data: null, error: errMsg }, 500)
+  }
 })
 
 /**

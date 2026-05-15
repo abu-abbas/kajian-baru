@@ -1,5 +1,6 @@
 import { supabase } from './supabase.js'
 import type { Kajian } from '@kajian-baru/types'
+import { generateFollowKey } from '@kajian-baru/parser'
 
 /**
  * Mencegah redundancy secara cerdas (Deduplication) saat menyisipkan data Kajian baru ke database.
@@ -40,9 +41,9 @@ export async function safeIngestKajian(
 
   const existing = (existingData ?? []) as Kajian[]
 
-  // Helper Key Maker: Menggabungkan Tanggal + Tempat (Normalized) + Waktu Mulai (Normalized)
+  // 🛡️ Helper Key Maker Premium: Menggunakan generateFollowKey dari parser agar kebal total terhadap variasi kurung, spasi, & ornamen!
   const makeCompositeKey = (k: Kajian) => {
-    const tempatNorm = (k.tempat ?? '').toLowerCase().replace(/[^a-z0-9]/g, '').trim()
+    const tempatNorm = generateFollowKey('MASJID', k.tempat, k.kota)
     const waktuNorm = (k.waktu_mulai ?? '').toLowerCase().replace(/[^a-z0-9]/g, '').trim()
     return `${k.tanggal_masehi}::${tempatNorm}::${waktuNorm}`
   }

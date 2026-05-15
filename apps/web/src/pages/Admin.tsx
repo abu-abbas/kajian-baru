@@ -262,13 +262,13 @@ export function Admin() {
       </header>
 
       {/* Admin Dashboard Content */}
-      <main className="flex-1 max-w-5xl mx-auto w-full px-4 py-8 space-y-7 flex flex-col">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 pt-6 pb-10 space-y-7 flex flex-col">
         
-        {/* 🗂️ Modern 3-Way Switcher Tab Navigation */}
-        <div className="flex flex-wrap items-center gap-1 bg-secondary/40 border border-border/60 p-1 rounded-2xl self-start shadow-sm backdrop-blur-md relative z-10">
+        {/* 🗂️ Modern Switcher Tab Navigation (Scrollable horizontal di Mobile agar lapang!) */}
+        <div className="flex flex-row md:flex-wrap items-center gap-1.5 bg-secondary/40 border border-border/60 p-1.5 rounded-2xl shadow-sm backdrop-blur-md relative z-10 overflow-x-auto max-w-full scrollbar-none w-full md:w-auto md:self-start select-none">
           <button
             onClick={() => setActiveTab('parser')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 shrink-0
               ${activeTab === 'parser' 
                 ? 'bg-background border border-border/60 text-primary shadow-sm scale-100' 
                 : 'text-muted-foreground hover:text-foreground border border-transparent hover:bg-secondary/40'
@@ -276,12 +276,12 @@ export function Admin() {
             `}
           >
             <Sparkles className="h-3.5 w-3.5" />
-            <span>Ekstrak Teks (Parser)</span>
+            <span>Ekstrak Teks</span>
           </button>
 
           <button
             onClick={() => setActiveTab('manual')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 shrink-0
               ${activeTab === 'manual' 
                 ? 'bg-background border border-border/60 text-primary shadow-sm scale-100' 
                 : 'text-muted-foreground hover:text-foreground border border-transparent hover:bg-secondary/40'
@@ -289,12 +289,12 @@ export function Admin() {
             `}
           >
             <PenLine className="h-3.5 w-3.5" />
-            <span>Input Manual Form</span>
+            <span>Input Manual</span>
           </button>
           
           <button
             onClick={() => setActiveTab('daftar')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 shrink-0
               ${activeTab === 'daftar' 
                 ? 'bg-background border border-border/60 text-primary shadow-sm scale-100' 
                 : 'text-muted-foreground hover:text-foreground border border-transparent hover:bg-secondary/40'
@@ -302,12 +302,12 @@ export function Admin() {
             `}
           >
             <ClipboardList className="h-3.5 w-3.5" />
-            <span>Kelola Arsip Kajian</span>
+            <span>Arsip Kajian</span>
           </button>
 
           <button
             onClick={() => setActiveTab('bot-users')}
-            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300
+            className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 shrink-0
               ${activeTab === 'bot-users' 
                 ? 'bg-background border border-border/60 text-primary shadow-sm scale-100' 
                 : 'text-muted-foreground hover:text-foreground border border-transparent hover:bg-secondary/40'

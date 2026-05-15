@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Kajian } from '@kajian-baru/types'
 import { Badge } from './ui/badge'
-import { Clock, MapPin, Phone, Calendar, Navigation, Mic } from 'lucide-react'
+import { Clock, MapPin, Phone, Calendar, Navigation, Mic, Ban } from 'lucide-react'
 import { cleanVisual, getAudienceVariant, formatDisplayDate, checkSelesaiRedundant, splitTempatAddress, getCategoryGradient } from '../lib/utils'
 
 type KajianCardProps = {
@@ -96,8 +96,9 @@ export function KajianCard({ kajian, onClick }: KajianCardProps) {
               {activeItem.audience}
             </Badge>
             {activeItem.is_cancelled && (
-              <Badge variant="destructive" className="font-black tracking-wider uppercase border border-red-500/30 animate-pulse">
-                Diliburkan 🚫
+              <Badge variant="destructive" className="font-black tracking-wider uppercase border border-red-500/30 animate-pulse flex items-center gap-1">
+                <Ban className="h-2.5 w-2.5" />
+                Diliburkan
               </Badge>
             )}
           </div>
@@ -125,7 +126,7 @@ export function KajianCard({ kajian, onClick }: KajianCardProps) {
                     ${isBatal && !isActive ? 'line-through decoration-red-500/50 opacity-60' : ''}
                   `}
                 >
-                  {isBatal && <span>🚫</span>}
+                  {isBatal && <Ban className="h-2.5 w-2.5 text-red-500" />}
                   <span>{getSessionLabel(item, idx)}</span>
                 </button>
               )

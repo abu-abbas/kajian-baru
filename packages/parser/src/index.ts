@@ -187,8 +187,20 @@ function extractHeader(text: string): HeaderInfo {
   const kota = kotaMatch?.[1]?.trim() ?? ''
 
   // ✍️ EXTRACT KONTRIBUTOR: Ambil info 'Creative by' atau 'Creator'
+  let kontributor = 'KajianBaru'
   const creatorMatch = header.match(/(?:Creative\s+by|Creator|Oleh|Sumber)\s*[:\-–]\s*([^`\n]+)/i)
-  const kontributor = creatorMatch?.[1]?.trim().replace(/[\`\*\_]/g, '') ?? 'KajianBaru'
+  if (creatorMatch && creatorMatch[1]) {
+    kontributor = creatorMatch[1].trim().replace(/[\`\*\_]/g, '')
+  } else {
+    // 🛡️ SMART FALLBACK FOR SPLITS: Jika pesan Telegram terpecah dan header awal hilang,
+    // cari kata kunci 'Creative by' secara global di seluruh dokumen, atau tanda tangan komunitas di footer!
+    const globalMatch = text.match(/(?:Creative\s+by|Creator|Sumber)\s*[:\-–]\s*([^`\n\•\>]+)/i)
+    if (globalMatch && globalMatch[1]) {
+      kontributor = globalMatch[1].trim().replace(/[\`\*\_]/g, '')
+    } else if (/Jadwal\s+Kajian\s+Kaskus/i.test(text)) {
+      kontributor = 'Tim Jadwal Kajian Kaskus'
+    }
+  }
 
   return { kota, tanggal_masehi, tanggal_hijriyah, kontributor }
 }
@@ -541,8 +553,23 @@ function parseTempat(raw: string): { tempat: string; alamat: string; maps_url: s
   if (cleaned.includes('\n')) {
     const lines = cleaned.split('\n').map(l => l.trim()).filter(Boolean)
     if (lines.length > 1) {
+      const firstLine = lines[0] ?? ''
+      const secondLine = lines[1] ?? ''
+      
+      // 💡 KECERDASAN TAMBAHAN: Jika baris ke-2 dibungkus kurung penjelas, misal "(SIT Al Ihsan Legenda)",
+      // gabungkan langsung sebagai sub-keterangan Tempat, bukan dipaksa masuk ke Alamat Jalan!
+      const isSubVenueInfo = secondLine.startsWith('(') && secondLine.endsWith(')')
+      
+      if (isSubVenueInfo) {
+        return {
+          tempat: `${firstLine} ${secondLine}`.trim(),
+          alamat: lines.slice(2).join(', '),
+          maps_url
+        }
+      }
+
       return {
-        tempat: lines[0]!,
+        tempat: firstLine,
         alamat: lines.slice(1).join(', '),
         maps_url
       }
