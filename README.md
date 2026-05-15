@@ -4,7 +4,6 @@
 > *Dikembangkan khusus sebagai submission MVP untuk **HSI Vibathon 2026**.*
 
 <p align="left">
-  <a href="https://github.com/abu-abbas/kajian-baru/actions/workflows/ci.yml"><img src="https://github.com/abu-abbas/kajian-baru/actions/workflows/ci.yml/badge.svg" alt="CI Validation"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-100%25-3178c6?style=flat&logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-18.x-61dafb?style=flat&logo=react&logoColor=black" alt="React"></a>
   <a href="https://hono.dev/"><img src="https://img.shields.io/badge/Hono-API-e36002?style=flat&logo=hono&logoColor=white" alt="Hono"></a>
