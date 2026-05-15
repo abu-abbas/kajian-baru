@@ -8,17 +8,39 @@ description: Builds or modifies the rules-based parser engine that extracts kaji
 ## What this parser does
 Converts raw WhatsApp/Telegram copas text into structured `ParseResult` containing an array of `Kajian` objects. No AI involved — pure regex and string manipulation.
 
-## Input format pattern
+## Input format patterns
+
+Mesin parser mendukung tiga jenis format masukan utama untuk memisahkan deretan jadwal kajian (Block-Splitting Architecture):
+
+### 🌟 1. Format Rekapan Massal Kaskus (PALING DISARANKAN)
+Sangat kokoh untuk penyalinan massal puluhan jadwal sekaligus. Menggunakan pembatas tiga bintang (`***`) dan penanda arrow kunci (`》`). Kebal terhadap variasi baris baru di tengah alamat.
+
+```text
+🕌 [NAMA_TEMPAT]
+([KETERANGAN_OR_SIT])
+[ALAMAT_FASILITAS]
+🌏 G-maps : [MAPS_URL]
+》Pemateri : [NAMA_USTADZ]
+》Tema : [JUDUL_MATERI]
+》Waktu : [JAM_MULAI] s/d [JAM_SELESAI]
+》CP : [NO_TELEPON] [AUDIENCE_EMOJI]
+***
 ```
-Jadwal Kajian [DAY], [DATE_MASEHI] / [DATE_HIJRIYAH]. Untuk daerah [KOTA] dan sekitarnya.
+
+### 2. Format Monorepo Standar (Legacy Tilde)
+Menggunakan pembatas cacing (`~`) untuk memisahkan entri, dengan ikon emoji sebagai pembuka kata kunci.
+```text
 📚 Materi : [MATERI]
-🎙️ Pemateri : [PEMATERI] -hafizhahullah-
-🕰️ Waktu : [WAKTU_MULAI] s/d [WAKTU_SELESAI] WIB
-🕌 Tempat : [TEMPAT] ([ALAMAT])[MAPS_URL]
-📞 Info Panitia Kajian : [KONTAK]([AUDIENCE])
+🎙️ Pemateri : [PEMATERI]
+🕰️ Waktu : [WAKTU]
+🕌 Tempat : [TEMPAT] ([ALAMAT]) [MAPS_URL]
+📞 Info : [KONTAK]
 ~
-[next kajian...]
 ```
+
+### 3. Format WhatsApp Massal (Raw Split 📚)
+Jika pengguna tidak menggunakan pembatas khusus (`***` atau `~`), sistem akan mendeteksi keberadaan emoji buku (`📚`) secara rekursif dan membelahnya di setiap kali ikon tersebut muncul sebagai entitas mandiri.
+
 
 ## Parsing algorithm
 
