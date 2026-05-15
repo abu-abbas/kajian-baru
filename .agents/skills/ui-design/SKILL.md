@@ -44,3 +44,15 @@ We use a custom-tailored **Dark Emerald/Teal (Islamic Green)** luxury aesthetic.
 - `AKHWAT` / `MUSLIMAH`: Pink (`bg-pink-500/20 text-pink-400 border-pink-500/30`).
 - `IKHWAN`: Blue (`bg-blue-500/20 text-blue-400 border-blue-500/30`).
 - `UMUM`: Emerald (`bg-emerald-500/20 text-emerald-400 border-emerald-500/30`).
+
+## 4. Advanced Layout Patterns
+
+### Adaptive Scroll-Triggered Navigation
+Navbar utama (`sticky top-0`) harus dijaga agar tetap longgar dan bersih pada kondisi muatan awal (saat screen scroll y = 0). Kontrol padat seperti Search pill sebaiknya hanya diletakkan di body feed. Saat pengguna mulai scroll ke bawah (`isScrolled` hook aktif), hadirkan elemen pencarian sekunder secara dinamis ke dalam Navbar dengan transisi `animate-in fade-in slide-in-from-top-2`.
+
+### The Command Spotlight Box
+Dialog pencarian masif harus meniru pengalaman MacOS Spotlight:
+- Posisi: Melayang di tengah-atas layar dengan gap atas yang proposional.
+- Backdrop: Berat blur (`backdrop-blur-2xl`).
+- Interaksi: Shortcut Meta+K global, auto-focus instan saat mounting, dan listener kunci `Escape` untuk proses penutupan instan.
+

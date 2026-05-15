@@ -38,6 +38,7 @@ trigger: always_on
 - **Database Integrity**: Jangan pernah sengaja mengedit/mengubah data mentah di DB live secara "curang" (skrip migrasi pembersih ad-hoc) hanya untuk mengakomodasi inkonsistensi tampilan visual; semua inkonsistensi data historis di DB harus ditangani dengan ksatria di runtime layer UI menggunakan visual scrubbers yang tangguh!
 - **Centralized Data Ingest Flow**: Seluruh jalur masuk data baru (dari bot telegram maupun admin panel bulk) WAJIB dilarikan ke API Ingest Engine (`apps/api/src/lib/ingest.ts`). JANGAN PERNAH memanggil Supabase `.insert()` mentahan di route endpoint! Pintu gerbang `safeIngestKajian` memikul tanggung jawab sakral mencegah data duplikat dan secara cerdas memperbarui flag `is_cancelled: true` jika data kajian lama disubmit ulang dengan status Diliburkan!
 - **Unified Composite Follow Keys**: Sistem notifikasi langganan push (tabel `user_follows`) WAJIB menggunakan `generateFollowKey()` dari `@kajian-baru/parser` di kedua sisi (Frontend & API). Khusus entitas `MASJID`, kunci follow WAJIB digabungkan dengan data `KOTA` (Composite Key) dan tanda kurung keterangan dilucuti habis! Ini krusial untuk mencegah tabrakan nama masjid antar-kota yang sama, sekaligus menjamin kekebalan mutlak terhadap variasi teks ornamen dalam kurung!
+- **Proactive Scaling Optimization**: Setiap kali membuat/memodifikasi API Endpoint yang memicu pencarian kata parsial liar (`.ilike("%keyword%")`), WAJIB hukumnya memprovisikan indeks **`pg_trgm` GIN** di file `supabase/schema.sql` untuk menjamin performa pencarian tetap kencang di bawah mikrodetik ketika baris data menyentuh ratusan ribu!
 
 ## Auth Rules
 - Admin check: always verify against `admin_users` table, not just Supabase auth
@@ -67,6 +68,9 @@ trigger: always_on
 - Loading state harus selalu ada untuk setiap async operation
 - Error state harus selalu ditampilkan dengan pesan yang jelas
 - Selalu gunakan ikon Lucide React untuk UI labels. Dilarang keras menggunakan emoji Unicode sistem (seperti 🏠, 📍, ⚠️, 📁) agar visual tetap berkelas!
+- **Adaptive Scroll-Triggered Clean Header**: Lindungi Navbar utama dari kepadatan padat. Elemen penunjang sekunder (seperti widget pencarian) sebaiknya tersembunyi saat awal muat layar (top = 0), dan baru diluncurkan/dihadirkan ke dalam Navbar dengan transisi indah ketika pengguna melakukan scroll ke bawah (`isScrolled`).
+- **Branding Vector First**: Seluruh icon brand dan favicon WAJIB berbasis vector murni (`favicon.svg`) dan dipetakan ke icon PWA PNG 192x192 / 512x512 yang 100% simetris & transparan tanpa background samping kotak padat.
+- **Command Spotlight Experience**: Pencarian global harus mengadopsi gaya MacOS Spotlight (dialog melayang tengah-atas dengan backdrop heavy blur, shortcut Meta+K, listener otomatis `Escape` key untuk tutup instan, dan auto-focus seketika saat terbuka).
 
 ## What NOT to do
 - Jangan hardcode API keys — selalu dari environment variables

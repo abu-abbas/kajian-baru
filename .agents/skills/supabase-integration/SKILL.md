@@ -101,3 +101,17 @@ SUPABASE_SERVICE_ROLE_KEY=xxx  # Never expose this
 VITE_SUPABASE_URL=https://xxx.supabase.co
 VITE_SUPABASE_ANON_KEY=xxx
 ```
+
+## Database Performance & Scale (Proactive Optimization)
+Saat menulis kueri pencarian teks wildcard (menggunakan `.ilike('%keyword%')` di beberapa kolom), **jangan pernah membiarkan tabel melakukan scan penuh tanpa indeks**.
+
+Selalu daftarkan penanganan ini pada file `supabase/schema.sql`:
+```sql
+-- Aktifkan pg_trgm ekstensi untuk performa indeks teks parsial
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Bangun indeks GIN pada kolom-kolom teks sasaran pencarian
+CREATE INDEX IF NOT EXISTS idx_tabel_kolom_trgm ON nama_tabel USING gin (nama_kolom gin_trgm_ops);
+```
+Tanpa optimasi di atas, performa pencarian akan tersendat saat baris data membengkak!
+
