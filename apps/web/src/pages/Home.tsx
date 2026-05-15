@@ -196,7 +196,8 @@ export function Home() {
   // Deteksi pergerakan scroll layar untuk iOS Morphing Header
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 70)
+      // Diubah dari >70 ke >350 agar Search Navbar HANYA muncul setelah Search Bar utama di bawah Hero tergulung ke atas!
+      setIsScrolled(window.scrollY > 350)
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
