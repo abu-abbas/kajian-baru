@@ -13,8 +13,14 @@ import { Toaster } from '../components/ui/toaster'
 export function Admin() {
   const { user, loading, isAdmin, signInWithGoogle, signOut } = useAuth()
   
-  // 🗂️ State Pengontrol Navigasi Tab Panel Admin
-  const [activeTab, setActiveTab] = useState<'parser' | 'manual' | 'daftar' | 'bot-users'>('parser')
+  type AdminTab = 'parser' | 'manual' | 'daftar' | 'bot-users'
+
+  // 🗂️ State Pengontrol Navigasi Tab Panel Admin (Dinamis memuat dari Hash URL)
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    const hash = window.location.hash.replace('#', '') as AdminTab
+    const validTabs: AdminTab[] = ['parser', 'manual', 'daftar', 'bot-users']
+    return validTabs.includes(hash) ? hash : 'parser'
+  })
 
   // 🕵️‍♂️ Scroll Sensor untuk Fitur Header Morphing
   const [isScrolled, setIsScrolled] = useState(false)
@@ -25,6 +31,24 @@ export function Admin() {
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // 🔗 HASH SYNCHRONIZER: Rekam perpindahan tab ke dalam URL Hash tanpa memicu reload bawaan browser
+  useEffect(() => {
+    window.history.replaceState(null, '', `#${activeTab}`)
+  }, [activeTab])
+
+  // 🧭 HISTORY LISTENER: Responsif saat pengguna menekan tombol Back / Forward di browser!
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '') as AdminTab
+      const validTabs: AdminTab[] = ['parser', 'manual', 'daftar', 'bot-users']
+      if (validTabs.includes(hash)) {
+        setActiveTab(hash)
+      }
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
   }, [])
 
   // ⛷️ SMOOTH AUTO-SCROLL: Antarkan layar kembali ke puncak secara mulus saat ganti tab!
