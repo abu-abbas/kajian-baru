@@ -5,6 +5,7 @@ import { logger } from 'hono/logger'
 import { kajianRoutes } from './routes/kajian.js'
 import { adminRoutes } from './routes/admin.js'
 import { pushRoutes } from './routes/push.js'
+import { botRoutes } from './routes/bot.js'
 import { authMiddleware, adminMiddleware } from './middleware/auth.js'
 
 const app = new Hono()
@@ -27,6 +28,9 @@ app.get('/', (c) => c.json({ status: 'ok', service: 'kajian-baru-api' }))
 
 // Public routes
 app.route('/kajian', kajianRoutes)
+
+// Bot routes (Telegram webhook — bot handles its own auth)
+app.route('/bot', botRoutes)
 
 // Push routes (require auth)
 app.use('/push/*', authMiddleware)

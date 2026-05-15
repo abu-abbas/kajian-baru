@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { supabase } from '../lib/supabase.js'
-import type { ApiResponse, AdminUser } from '@kajian-baru/types'
+import type { ApiResponse, AdminUser, BotUser, BotUserStatus } from '@kajian-baru/types'
 
 export const adminRoutes = new Hono()
 
@@ -90,3 +90,80 @@ adminRoutes.delete('/users/:id', async (c) => {
   const response: ApiResponse<null> = { success: true, data: null, error: null }
   return c.json(response)
 })
+
+// ============================================================
+// Bot User Management (Approve/Reject dari Web Admin)
+// ============================================================
+
+/**
+ * GET /admin/bot-users — List semua user bot Telegram
+ */
+adminRoutes.get('/bot-users', async (c) => {
+  const { data, error } = await supabase
+    .from('bot_users')
+    .select('*')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    const response: ApiResponse<null> = { success: false, data: null, error: error.message }
+    return c.json(response, 500)
+  }
+
+  const response: ApiResponse<BotUser[]> = { success: true, data: data as BotUser[], error: null }
+  return c.json(response)
+})
+
+/**
+ * PATCH /admin/bot-users/:telegramId — Update status user bot (approve/reject)
+ * Body: { status: 'approved' | 'rejected' }
+ */
+adminRoutes.patch('/bot-users/:telegramId', async (c) => {
+  const telegramId = Number(c.req.param('telegramId'))
+  const body = await c.req.json<{ status: BotUserStatus }>()
+
+  if (!['approved', 'rejected'].includes(body.status)) {
+    const response: ApiResponse<null> = { success: false, data: null, error: 'Invalid status' }
+    return c.json(response, 400)
+  }
+
+  const updatePayload: Record<string, unknown> = { status: body.status }
+  if (body.status === 'approved') {
+    updatePayload['approved_at'] = new Date().toISOString()
+  }
+
+  const { data, error } = await supabase
+    .from('bot_users')
+    .update(updatePayload)
+    .eq('telegram_id', telegramId)
+    .select()
+    .single()
+
+  if (error) {
+    const response: ApiResponse<null> = { success: false, data: null, error: error.message }
+    return c.json(response, 500)
+  }
+
+  const response: ApiResponse<BotUser> = { success: true, data: data as BotUser, error: null }
+  return c.json(response)
+})
+
+/**
+ * DELETE /admin/bot-users/:telegramId — Hapus user bot
+ */
+adminRoutes.delete('/bot-users/:telegramId', async (c) => {
+  const telegramId = Number(c.req.param('telegramId'))
+
+  const { error } = await supabase
+    .from('bot_users')
+    .delete()
+    .eq('telegram_id', telegramId)
+
+  if (error) {
+    const response: ApiResponse<null> = { success: false, data: null, error: error.message }
+    return c.json(response, 500)
+  }
+
+  const response: ApiResponse<null> = { success: true, data: null, error: null }
+  return c.json(response)
+})
+

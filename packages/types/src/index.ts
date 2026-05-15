@@ -139,3 +139,21 @@ export type DbNotification = {
   read: boolean
   created_at: string
 }
+
+/**
+ * Status akses user Telegram Bot
+ */
+export type BotUserStatus = 'pending' | 'approved' | 'rejected'
+
+/**
+ * User Telegram Bot yang terdaftar
+ */
+export type BotUser = {
+  id?: number
+  telegram_id: number
+  telegram_username: string | null
+  full_name: string
+  status: BotUserStatus
+  created_at?: string
+  approved_at?: string | null
+}
