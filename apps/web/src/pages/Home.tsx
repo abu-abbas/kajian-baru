@@ -9,7 +9,7 @@ import { KajianDetailDialog } from '../components/KajianDetailDialog'
 import { NotificationsCenter } from '../components/NotificationsCenter'
 import { ScrollToTop } from '../components/ScrollToTop'
 import type { Audience, Kajian, ApiResponse } from '@kajian-baru/types'
-import { Compass, LogIn, LogOut, Settings, Search, SlidersHorizontal, X, Loader2, Bell, BellOff, CheckCircle2, AlertCircle, ArrowUp, Quote } from 'lucide-react'
+import { Compass, LogIn, LogOut, Settings, Search, SlidersHorizontal, X, Loader2, Bell, BellOff, CheckCircle2, AlertCircle, ArrowUp, Quote, MapPin, CalendarDays } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { registerServiceWorker, subscribeUserToPush, unsubscribeUserFromPush, getPushSubscriptionStatus } from '../lib/push-notifications'
@@ -23,6 +23,7 @@ export function Home() {
 
   // Diinisialisasi kosong agar menampilkan TIMELINE GLOBAL (semua kajian terbaru)
   const [tanggal, setTanggal] = useState('')
+  const [search, setSearch] = useState('') // 🔎 TINGKAT DEWA: Keyword Search Spotlight!
 
   const [kajianList, setKajianList] = useState<Kajian[]>([])
   const [loading, setLoading] = useState(false)
@@ -98,6 +99,18 @@ export function Home() {
     void loadDeepLinkedKajian()
   }, []) // Efek ini hanya berjalan 1x saat halaman pertama kali dibuka
 
+  // ⌨️ SHORTCUT KEYBOARD: Aktifkan Spotlight dengan Cmd+K atau Ctrl+K!
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault()
+        setIsFilterOpen(prev => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
   // 📡 POLLING FALLBACK: Cek data kajian baru setiap 30 detik (lebih reliable dari WebSocket)
   useEffect(() => {
     // Reset hitungan & majukan timestamp referensi setiap kali filter berubah agar sinkron!
@@ -115,6 +128,7 @@ export function Home() {
         if (kota) query = query.eq('kota', kota)
         if (tanggal) query = query.eq('tanggal_masehi', tanggal)
         if (audience) query = query.eq('audience', audience)
+        if (search) query = query.or(`materi.ilike.%${search}%,pemateri.ilike.%${search}%,tempat.ilike.%${search}%`)
 
         const { count } = await query
 
@@ -150,7 +164,7 @@ export function Home() {
 
   const handleTogglePush = async () => {
     if (!user) {
-      setToastMsg({ text: '🔒 Silakan masuk/login terlebih dahulu!', type: 'error' })
+      setToastMsg({ text: 'Silakan masuk/login terlebih dahulu!', type: 'error' })
       setTimeout(() => setToastMsg(null), 3000)
       return
     }
@@ -159,21 +173,21 @@ export function Home() {
       if (pushEnabled) {
         await unsubscribeUserFromPush()
         setPushEnabled(false)
-        setToastMsg({ text: '🔕 Notifikasi berhasil dinonaktifkan.', type: 'success' })
+        setToastMsg({ text: 'Notifikasi berhasil dinonaktifkan.', type: 'success' })
       } else {
         // Tambahkan toast memuat sementara agar UI responsif
-        setToastMsg({ text: '⏳ Menghubungkan notifikasi browser...', type: 'success' })
+        setToastMsg({ text: 'Menghubungkan notifikasi browser...', type: 'success' })
         const result = await subscribeUserToPush()
 
         if (result.success) {
           setPushEnabled(true)
-          setToastMsg({ text: '🔔 Notifikasi Aktif! Anda siap menerima update.', type: 'success' })
+          setToastMsg({ text: 'Notifikasi Aktif! Anda siap menerima update.', type: 'success' })
         } else {
-          setToastMsg({ text: `❌ Gagal: ${result.error || 'Izin diblokir'}`, type: 'error' })
+          setToastMsg({ text: `Gagal: ${result.error || 'Izin diblokir'}`, type: 'error' })
         }
       }
     } catch {
-      setToastMsg({ text: '🚨 Gangguan saat menyambungkan notifikasi.', type: 'error' })
+      setToastMsg({ text: 'Gangguan saat menyambungkan notifikasi.', type: 'error' })
     } finally {
       setTimeout(() => setToastMsg(null), 3500)
     }
@@ -193,7 +207,7 @@ export function Home() {
     setKajianList([])
     setOffset(0)
     setHasMore(true)
-  }, [tanggal, kota, audience])
+  }, [tanggal, kota, audience, search])
 
   // Deteksi dasar layar (Scroll to Bottom) untuk memicu pemuatan data selanjutnya
   useEffect(() => {
@@ -234,6 +248,7 @@ export function Home() {
         if (tanggal) params.append('tanggal', tanggal)
         if (kota) params.append('kota', kota)
         if (audience) params.append('audience', audience)
+        if (search) params.append('q', search)
 
         params.append('limit', String(LIMIT))
         params.append('offset', String(offset))
@@ -278,13 +293,14 @@ export function Home() {
 
     // 🧹 CLEANUP: Batalkan tembakan lama saat komponen unmount / dependencies berubah!
     return () => controller.abort()
-  }, [tanggal, kota, audience, offset, refreshTrigger])
+  }, [tanggal, kota, audience, search, offset, refreshTrigger])
 
   // Hitung jumlah filter aktif untuk lencana visual di ikon pencarian
   const activeFilterCount = [
     kota ? 1 : 0,
     audience ? 1 : 0,
-    tanggal ? 1 : 0
+    tanggal ? 1 : 0,
+    search ? 1 : 0
   ].reduce((a, b) => a + b, 0)
 
   return (
@@ -295,6 +311,8 @@ export function Home() {
       <FilterDialog
         isOpen={isFilterOpen}
         onClose={() => setIsFilterOpen(false)}
+        search={search}
+        onSearchChange={setSearch}
         kota={kota}
         onKotaChange={setKota}
         audience={audience}
@@ -331,49 +349,53 @@ export function Home() {
             </div>
           </div>
 
-          {/* TENGAH (STICKY TITLE): Muncul hanya saat layar digulir ke bawah */}
-          <div
-            className={`absolute left-1/2 -translate-x-1/2 pointer-events-none hidden sm:flex flex-col items-center transition-all duration-500 ${
-              isScrolled
-                ? 'opacity-100 translate-y-0 scale-100'
-                : 'opacity-0 translate-y-4 scale-90'
-            }`}
-          >
-            <h2 className="text-xs sm:text-sm font-black tracking-tight text-foreground whitespace-nowrap flex items-center gap-1.5">
-              <span>Temukan Ilmu Hari Ini</span>
-              {activeFilterCount > 0 && (
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              )}
-            </h2>
-            {kota && (
-              <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 leading-none tracking-wider uppercase mt-0.5">
-                📍 {kota}
-              </span>
-            )}
-          </div>
+          {/* TENGAH: Kosong (Menghapus sticky text lama sesuai permintaan abang agar lebih lega!) */}
+          <div className="absolute left-1/2 -translate-x-1/2 pointer-events-none hidden sm:block" />
 
           {/* KANAN: Aksi-aksi Header */}
           <div className="flex items-center gap-1.5">
 
-            {/* Tombol Pencarian Baru (Pemicu Modal) */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsFilterOpen(true)}
-              title="Pencarian & Filter"
-              className={`relative rounded-full h-10 w-10 transition-all duration-300 ${
-                isFilterOpen
-                  ? 'bg-primary/10 text-primary'
-                  : 'hover:bg-accent hover:text-accent-foreground'
-              }`}
-            >
-              <Search className="h-4 w-4" />
+            {/* 🔎 Premium Search Dynamic Trigger (MUNCUL HANYA SAAT SCROLL: Gaya Minimalis Kelas Dunia!) */}
+            {isScrolled && (
+              <div className="flex items-center gap-1.5 animate-in fade-in slide-in-from-top-2 duration-300 ease-out">
+                {/* 🔎 Desktop Trigger */}
+                <button
+                  onClick={() => setIsFilterOpen(true)}
+                  className="h-9 hidden sm:flex items-center justify-between gap-4 pl-3 pr-1.5 bg-secondary/20 border border-border/60 hover:border-emerald-500/40 rounded-xl text-muted-foreground hover:text-foreground transition-all duration-300 active:scale-[0.98] cursor-pointer relative overflow-hidden"
+                >
+                  <div className="flex items-center gap-2 relative max-w-[130px]">
+                    <Search className={`h-3.5 w-3.5 transition-colors ${search ? 'text-emerald-600 dark:text-emerald-400' : 'text-muted-foreground/80'}`} />
+                    <span className={`text-[11px] font-bold tracking-wide truncate transition-all ${search ? 'text-emerald-600 dark:text-emerald-400 font-black scale-100' : ''}`}>
+                      {search ? `"${search}"` : 'Cari'}
+                    </span>
+                  </div>
+                  <kbd className="flex items-center gap-0.5 border border-emerald-500/30 bg-emerald-500/10 px-1.5 py-0.5 rounded-md text-[9px] font-black text-emerald-600 dark:text-emerald-400 leading-none tracking-normal shrink-0 shadow-xs font-sans relative">
+                    <span>⌘</span>
+                    <span>K</span>
+                  </kbd>
+                </button>
 
-              {/* Lencana Merah/Ijo Kecil Penanda Ada Filter Aktif */}
-              {activeFilterCount > 0 && (
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-emerald-500 border-2 border-background ring-1 ring-emerald-500/50" />
-              )}
-            </Button>
+                {/* 🔎 Mobile Trigger */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsFilterOpen(true)}
+                  title="Pencarian & Filter"
+                  className={`relative sm:hidden rounded-full h-10 w-10 transition-all duration-300 ${
+                    isFilterOpen
+                      ? 'bg-primary/10 text-primary'
+                      : 'hover:bg-accent hover:text-accent-foreground'
+                  }`}
+                >
+                  <Search className="h-4 w-4" />
+
+                  {/* Lencana Merah/Ijo Kecil Penanda Ada Filter Aktif */}
+                  {activeFilterCount > 0 && (
+                    <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-emerald-500 border-2 border-background ring-1 ring-emerald-500/50" />
+                  )}
+                </Button>
+              </div>
+            )}
 
             <ThemeToggle />
 
@@ -461,6 +483,26 @@ export function Home() {
           </div>
         </div>
 
+        {/* 🔎 SPOTLIGHT SEARCH TRIGGER: Standar di bawah hero (Menggulung alami ke atas) */}
+        <div className="py-1 animate-in fade-in duration-500">
+          <button
+            onClick={() => setIsFilterOpen(true)}
+            className="w-full h-12 flex items-center justify-between px-4 bg-card/50 dark:bg-[#0e1310]/80 border border-border/80 dark:border-emerald-500/10 hover:border-emerald-500/40 rounded-2xl shadow-sm hover:shadow-md text-muted-foreground hover:text-foreground transition-all duration-300 active:scale-[0.99] group cursor-pointer relative overflow-hidden"
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-emerald-500/0 via-emerald-500/5 to-teal-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+            <div className="flex items-center gap-3 relative z-10">
+              <Search className="h-4 w-4 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform" />
+              <span className="text-xs sm:text-sm font-semibold tracking-wide text-muted-foreground/80 group-hover:text-foreground transition-colors truncate max-w-[200px] sm:max-w-none">
+                {search ? `Mencari: "${search}"` : 'Cari kajian, ustadz, atau masjid...'}
+              </span>
+            </div>
+            <div className="flex items-center gap-1 border border-border/60 bg-background dark:bg-black/40 px-2 py-1 rounded-lg text-[9px] font-black tracking-widest text-muted-foreground shrink-0 shadow-inner relative z-10">
+              <span>⌘</span>
+              <span>K</span>
+            </div>
+          </button>
+        </div>
+
         {/* Mini Pills Info Bar (Pengganti Visual FilterBar lama: Hanya info singkat filter aktif saat ini) */}
         {activeFilterCount > 0 && (
           <div className="flex flex-wrap items-center gap-2 animate-in fade-in slide-in-from-top-2 duration-300">
@@ -473,13 +515,18 @@ export function Home() {
               </span>
             )}
             {tanggal && (
-              <span className="px-2.5 py-1 rounded-lg bg-secondary/70 text-muted-foreground border border-border/60 text-[11px] font-semibold">
-                📅 {new Date(tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+              <span className="px-2.5 py-1 rounded-lg bg-secondary/70 text-muted-foreground border border-border/60 text-[11px] font-semibold flex items-center gap-1">
+                <CalendarDays className="h-3.5 w-3.5 opacity-70" /> {new Date(tanggal).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
               </span>
             )}
             {audience && (
               <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-bold uppercase">
                 {audience}
+              </span>
+            )}
+            {search && (
+              <span className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 text-[11px] font-semibold truncate max-w-[120px] flex items-center gap-1">
+                <Search className="h-3 w-3 text-emerald-500" /> "{search}"
               </span>
             )}
 
@@ -489,6 +536,7 @@ export function Home() {
                 setKota('')
                 setAudience('')
                 setTanggal('')
+                setSearch('')
               }}
               className="px-2 py-1 rounded-lg bg-destructive/5 text-destructive/80 border border-destructive/10 hover:bg-destructive/10 hover:text-destructive text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-all ml-1 duration-200 active:scale-95 cursor-pointer"
               title="Hapus semua filter"
@@ -516,7 +564,7 @@ export function Home() {
                   Belum Ada Jadwal
                 </p>
                 <p className="text-xs text-muted-foreground max-w-[260px] mx-auto leading-relaxed">
-                  Belum terdaftar jadwal kajian untuk tanggal ini. Ketuk ikon 🔍 di kanan atas untuk menyesuaikan filter kota atau tanggal.
+                  Belum terdaftar jadwal kajian untuk tanggal ini. Ketuk tombol pencarian di kanan atas untuk menyesuaikan filter kota atau tanggal.
                 </p>
               </div>
               <Button

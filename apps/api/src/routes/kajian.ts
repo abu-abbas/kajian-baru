@@ -16,6 +16,7 @@ kajianRoutes.get('/', async (c) => {
   const tanggal = c.req.query('tanggal')
   const kota = c.req.query('kota')
   const audience = c.req.query('audience')
+  const search = c.req.query('q') ?? c.req.query('search')
 
   // Menangkap parameter paginasi (default: ambil 10 data pertama)
   const limit = parseInt(c.req.query('limit') ?? '10', 10)
@@ -43,6 +44,11 @@ kajianRoutes.get('/', async (c) => {
 
   if (audience && audience.trim() !== '') {
     query = query.eq('audience', audience)
+  }
+
+  if (search && search.trim() !== '') {
+    const clean = search.trim()
+    query = query.or(`materi.ilike.%${clean}%,pemateri.ilike.%${clean}%,tempat.ilike.%${clean}%`)
   }
 
   // Urutkan berdasarkan input TERBARU (Twitter style timeline)

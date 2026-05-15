@@ -3,7 +3,7 @@ import type { Kajian, ApiResponse } from '@kajian-baru/types'
 import { Button } from './ui/button'
 import { 
   RefreshCcw, Trash2, Edit3, Image as ImageIcon, Check, X, AlertCircle, Calendar, 
-  MapPin, User, ExternalLink, Search, AlertTriangle
+  MapPin, User, ExternalLink, Search, AlertTriangle, FolderOpen
 } from 'lucide-react'
 
 import { PosterUpload } from './PosterUpload'
@@ -393,7 +393,7 @@ export function KajianListAdmin() {
                         {/* Sisi Kiri: Direct Uploader Widget */}
                         <div className="space-y-2">
                           <label className="text-[9px] font-extrabold tracking-widest text-primary uppercase flex items-center gap-1.5 ml-1">
-                            📁 Unggah File Poster Baru
+                            <FolderOpen className="h-3 w-3" /> Unggah File Poster Baru
                           </label>
                           <PosterUpload 
                             onUploadSuccess={(url) => setEditPosterUrl(url)}

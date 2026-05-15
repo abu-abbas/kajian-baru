@@ -162,3 +162,15 @@ ALTER TABLE push_subscriptions ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "push_subscriptions_own" ON push_subscriptions
   FOR ALL USING (auth.uid() = user_id);
+
+-- ============================================================
+-- PERFORMANCE SCALABILITY: pg_trgm GIN Indexes for fast ILIKE Search
+-- ============================================================
+-- Mengaktifkan ekstensi tri-gram untuk PostgreSQL agar pencarian 'ILIKE %keyword%'
+-- bisa memanfaatkan INDEX secara cerdas dan tidak melakukan FULL TABLE SCAN
+-- (Sangat krusial untuk menjaga performa kilat meski data mencapai ratusan ribu baris!)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+CREATE INDEX IF NOT EXISTS idx_kajian_materi_trgm ON kajian USING gin (materi gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_kajian_pemateri_trgm ON kajian USING gin (pemateri gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_kajian_tempat_trgm ON kajian USING gin (tempat gin_trgm_ops);
