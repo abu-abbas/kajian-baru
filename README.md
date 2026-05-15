@@ -90,6 +90,7 @@ Sistem akan hidup secara otomatis di:
 *   **Dynamic Theme Cards**: Poster kajian otomatis berubah tema gradiennya menyesuaikan Target Audience (Ikhwan, Akhwat, atau Umum).
 *   **Web Push Native**: Memungkinkan user berlangganan update jadwal kajian baru secara langsung melalui browser mobile maupun desktop.
 *   **Telegram Bot Ingestion & Command Center**: Integrasi penuh dengan bot Telegram interaktif (`@KajianBaruHSIVibathonBot`) untuk membantu proses input data, sinkronisasi notifikasi ke channel, serta manajemen otorisasi user bot langsung dari panel dashboard Admin.
+*   **Centralized Data Ingest Engine**: Gerbang masuk data tunggal (`safeIngestKajian`) yang menjamin integritas database, mencegah duplikasi data duplikat di level API, serta cerdas mendeteksi & memperbarui status Diliburkan secara instan.
 
 ---
 
