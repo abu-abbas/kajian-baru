@@ -56,3 +56,18 @@ Dialog pencarian masif harus meniru pengalaman MacOS Spotlight:
 - Backdrop: Berat blur (`backdrop-blur-2xl`).
 - Interaksi: Shortcut Meta+K global, auto-focus instan saat mounting, dan listener kunci `Escape` untuk proses penutupan instan.
 
+## 5. Monorepo Advanced UI/UX Patterns
+
+### Runtime Visual Scrubbing
+Hindari manipulasi data mentah di database hanya untuk estetika visual. Semua rendering teks kajian (materi, pemateri) WAJIB dilewatkan ke helper sentral `cleanVisual()` atau scrubber terspesialisasi dari `@/lib/utils` guna menyingkirkan tag warisan masa lalu dan zero-width spaces secara toleran!
+
+### Smart Address Decoupler
+Setiap rendering Lokasi/Tempat di UI (kartu depan dan detail dialog) WAJIB menggunakan pembagian dinamis `splitTempatAddress()` untuk memisahkan Nama Venue (Bold) dari detail Alamat Jalan/Fisik (Normal, Kecil). Ini sangat krusial agar kata kunci langganan (*follow logic*) tetap murni dan tampilan visual terparkir rapi!
+
+### Seamless Multi-Session Navigator
+Komponen visual andalan (`KajianCard` dan `KajianDetailDialog`) dirancang elastis untuk menerima entitas tunggal `Kajian` ATAU list gabungan `Kajian[]` (multi-sesi). Gunakan state internal `activeIdx` untuk navigasi antar-sesi secara realtime tanpa mengacak-acak state induk.
+
+### Absolute Zero-Emoji Standard
+Dilarang keras menyisipkan emoji mentah Unicode/sistem (seperti 🏠, 📍, ⚠️) ke dalam label UI, button, atau indikator kartu. Seluruh penanda visual WAJIB dirender menggunakan ikon vector berkelas dari **Lucide React** demi menjaga konsistensi visual premium!
+
+

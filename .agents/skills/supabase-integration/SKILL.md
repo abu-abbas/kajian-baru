@@ -54,10 +54,15 @@ const { data, error } = await supabase
 // Filter by kota
 .eq('kota', kota)
 
-// Batch insert hasil parse
-const { error } = await supabase
-  .from('kajian')
-  .insert(kajianList)
+// 🚨 JANGAN PERNAH MENULIS KAJIAN MENGGUNAKAN `.insert()` MENTAHAN!
+// Seluruh jalur ingest data WAJIB menggunakan mesin rekonsiliasi deduplikasi terpusat:
+import { safeIngestKajian } from '../lib/ingest'
+
+// Pintu gerbang aman mencegah duplikat & mengupdate status libur otomatis!
+const { saved, skipped, updated } = await safeIngestKajian(
+  parsedList,
+  false // forcePublished (false = dari bot/draft, true = dari admin)
+)
 ```
 
 ## Auth middleware for Hono
@@ -114,4 +119,10 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE INDEX IF NOT EXISTS idx_tabel_kolom_trgm ON nama_tabel USING gin (nama_kolom gin_trgm_ops);
 ```
 Tanpa optimasi di atas, performa pencarian akan tersendat saat baris data membengkak!
+
+## Unified Composite Follow Keys
+Untuk fitur notifikasi berlangganan (tabel `user_follows`), dilarang keras menggunakan nama masjid polos atau kata kunci bebas. 
+
+1. Selalu panggil helper `generateFollowKey()` dari `@kajian-baru/parser` baik di Frontend (sebelum klik follow) maupun di API (saat memproses pencocokan keyword notifikasi).
+2. Khusus entitas **`MASJID`**, kunci pencocokan **WAJIB berupa Composite Key** yang digabungkan dengan data **`KOTA`** (contoh: `MASJID_AT_TAQWA_BEKASI`) dan tanda kurung ornamen dalam teks telah dilucuti bersih guna mencegah tabrakan nama masjid lintas wilayah!
 
