@@ -163,22 +163,24 @@ if (bot) {
   // /template — Contoh format teks yang bisa diparsing
   bot.command('template', async (ctx) => {
     await ctx.reply(
-      '📋 <b>Format Template Jadwal Kajian</b>\n\n' +
-      'Salin dan sesuaikan template berikut:\n\n' +
+      '📋 <b>Format Template Jadwal Kajian (Terbaik)</b>\n\n' +
+      'Salin & sesuaikan format yang paling disarankan ini:\n\n' +
       '<pre>' +
-      '📆 Jadwal Kajian Islam\n' +
-      'daerah Tangerang dan sekitarnya\n' +
-      '14 Mei 2026 / 17 Dzulqa\'dah 1447 Hijriyah\n\n' +
-      '📚 Materi: Kitab Riyadhush Shalihin\n' +
-      '🎙️ Pemateri: Ustadz Fulan hafizhahullah\n' +
-      '🕰️ Waktu: 08.00 s/d Selesai\n' +
-      '🕌 Tempat: Masjid Al-Ikhlas\n' +
-      '📞 Info: 0812xxxx (UMUM)\n' +
+      '*○●JAKARTA PUSAT●○*\n\n' +
+      '🕌 Masjid Al-Ikhlas\n' +
+      '(Ruang Utama Lt. 1)\n' +
+      'Jl. Sudirman No. 12, Kemayoran, Jakarta Pusat\n' +
+      '🌏 G-maps : https://maps.app.goo.gl/placeholder\n' +
+      '》Pemateri : Ustadz Fulan hafizhahullah\n' +
+      '》Tema : Kitab Riyadhush Shalihin\n' +
+      '》Waktu : 09.00 s/d Selesai\n' +
+      '》CP : 0812xxxx 🚹🚺\n' +
+      '***' +
       '</pre>\n\n' +
       '💡 <b>Tips:</b>\n' +
-      '• Pisahkan beberapa kajian dengan tanda <code>~</code>\n' +
-      '• Audience: <code>(UMUM)</code>, <code>(AKHWAT)</code>, atau <code>(IKHWAN)</code>\n' +
-      '• Bisa langsung copas dari grup WhatsApp/Telegram!',
+      '• Pisahkan deretan jadwal menggunakan tiga bintang (<code>***</code>).\n' +
+      '• Gender dapat ditentukan via emoji (<code>🚺</code> Akhwat, <code>🚹</code> Ikhwan, <code>🚹🚺</code> Umum).\n' +
+      '• Jangan lupa sertakan tag daerah <code>*○●NAMA KOTA●○*</code> di bagian paling atas!',
       { parse_mode: 'HTML' }
     )
   })

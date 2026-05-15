@@ -17,17 +17,17 @@ export function ParseInput() {
   const [saveSuccess, setSaveSuccess] = useState(false)
 
   const generateTemplate = () => {
-    const template = `KOTA: [NAMA KOTA]
-HARI, TANGGAL: [HARI], 16 MEI 2026
+    const template = `*○●[NAMA KOTA]●○*
 
-📚 Materi : [Judul / Kitab Kajian]
-🎙️ Pemateri : Ustadz [Nama Pemateri]
-🕰️ Waktu : [Waktu Mulai] s/d Selesai
-🕌 Tempat : [Nama Masjid] ([Alamat Lengkap / Lokasi])
-https://maps.app.goo.gl/[placeholder]
-📞 Info Panitia Kajian : [Nomor WA Panitia]
-([UMUM / IKHWAN & AKHWAT])
-~`
+🕌 [Nama Masjid]
+([Keterangan / Detail Lokasi])
+[Alamat Lengkap Jalan / Kelurahan / Kecamatan / Kota]
+🌏 G-maps : https://maps.app.goo.gl/placeholder
+》Pemateri : Ustadz [Nama Pemateri]
+》Tema : [Judul / Kitab Kajian]
+》Waktu : [Waktu Mulai] s/d Selesai
+》CP : [Nomor CP] 🚹🚺
+***`
     setRawText(template)
   }
 
