@@ -4,6 +4,7 @@ import { parseMessage } from '@kajian-baru/parser'
 import { authMiddleware, adminMiddleware } from '../middleware/auth.js'
 import type { ApiResponse, Kajian } from '@kajian-baru/types'
 import { triggerNotificationsForKajian } from './push.js'
+import { safeIngestKajian } from '../lib/ingest.js'
 
 export const kajianRoutes = new Hono()
 
@@ -20,9 +21,16 @@ kajianRoutes.get('/', async (c) => {
   const limit = parseInt(c.req.query('limit') ?? '10', 10)
   const offset = parseInt(c.req.query('offset') ?? '0', 10)
 
+  const includeUnpublished = c.req.query('include_unpublished') === 'true'
+
   let query = supabase
     .from('kajian')
     .select('*')
+
+  // 🔒 HANYA TAMPILKAN DATA YANG SUDAH PUBLISHED (Kecuali admin request draf!)
+  if (!includeUnpublished) {
+    query = query.eq('is_published', true)
+  }
 
   // Filter hanya diaplikasikan JIKA dilewatkan oleh pengguna
   if (tanggal && tanggal.trim() !== '') {
@@ -137,13 +145,15 @@ kajianRoutes.post('/batch', authMiddleware, adminMiddleware, async (c) => {
     return c.json(response, 400)
   }
 
-  const { data, error } = await supabase
-    .from('kajian')
-    .insert(body.kajian_list)
-    .select()
-
-  if (error) {
-    const response: ApiResponse<null> = { success: false, data: null, error: error.message }
+  let savedData: Kajian[] = []
+  
+  try {
+    // 🛡️ GUNAKAN ENGINE INGEST AMAN (Otomatis deduplikasi & rekonsiliasi status libur!)
+    const { saved } = await safeIngestKajian(body.kajian_list, true)
+    savedData = saved
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : 'Internal database error'
+    const response: ApiResponse<null> = { success: false, data: null, error: errMsg }
     return c.json(response, 500)
   }
 
@@ -187,11 +197,11 @@ kajianRoutes.post('/batch', authMiddleware, adminMiddleware, async (c) => {
   }
 
   // 📢 TRIGGER PUSH: Kirim notifikasi web ke semua user yang memfollow Ustadz/Masjid/Kota terkait (Secara Background)
-  if (data && data.length > 0) {
-    void triggerNotificationsForKajian(data as Kajian[])
+  if (savedData && savedData.length > 0) {
+    void triggerNotificationsForKajian(savedData)
   }
 
-  const response: ApiResponse<Kajian[]> = { success: true, data: data as Kajian[], error: null }
+  const response: ApiResponse<Kajian[]> = { success: true, data: savedData, error: null }
   return c.json(response, 201)
 })
 

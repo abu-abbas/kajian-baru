@@ -1,4 +1,5 @@
 import type { Kajian } from '@kajian-baru/types'
+import { generateFollowKey } from '@kajian-baru/parser'
 import { Badge } from './ui/badge'
 import { 
   X, Calendar, Clock, MapPin, Phone, Compass, 
@@ -8,15 +9,32 @@ import {
 import { useEffect, useState } from 'react'
 import { Button } from './ui/button'
 import { supabase } from '../lib/supabase'
-import { cleanVisual, getCategoryGradient, formatDisplayDate, checkSelesaiRedundant } from '../lib/utils'
+import { cleanVisual, getCategoryGradient, formatDisplayDate, checkSelesaiRedundant, splitTempatAddress } from '../lib/utils'
 
 type KajianDetailDialogProps = {
   isOpen: boolean
   onClose: () => void
   kajian: Kajian | null
+  allSessions?: Kajian[]
+  initialIndex?: number
 }
 
-export function KajianDetailDialog({ isOpen, onClose, kajian }: KajianDetailDialogProps) {
+export function KajianDetailDialog({ 
+  isOpen, onClose, kajian: propKajian, allSessions = [], initialIndex = 0 
+}: KajianDetailDialogProps) {
+  const [activeIdx, setActiveIdx] = useState(initialIndex)
+
+  // 🔄 Sinkronisasikan index aktif kembali ke sesi pemicu saat dialog dibuka
+  useEffect(() => {
+    if (isOpen) {
+      setActiveIdx(initialIndex)
+    }
+  }, [isOpen, initialIndex])
+
+  // Normalisasi dataset homogen (dukung sesi ganda)
+  const items = allSessions.length > 0 ? allSessions : (propKajian ? [propKajian] : [])
+  const kajian = items[activeIdx] ?? propKajian // 🔥 ALIASING: Menutupi scope propKajian tanpa merubah baris JSX bawah!
+
   const [followedUstadz, setFollowedUstadz] = useState(false)
   const [followedMasjid, setFollowedMasjid] = useState(false)
   const [followedKota, setFollowedKota] = useState(false)
@@ -26,7 +44,8 @@ export function KajianDetailDialog({ isOpen, onClose, kajian }: KajianDetailDial
 
   const displayMateri = cleanVisual(kajian?.materi, 'Materi|Tema|Judul|Kajian')
   const displayPemateri = cleanVisual(kajian?.pemateri, 'Pemateri|Penceramah|Narasumber|Bersama|Oleh')
-  const displayTempat = cleanVisual(kajian?.tempat, 'Tempat|Lokasi')
+  const displayTempatRaw = cleanVisual(kajian?.tempat, 'Tempat|Lokasi')
+  const { cleanTempat, cleanAlamat } = splitTempatAddress(displayTempatRaw, kajian?.alamat)
 
   // 🔄 SYNC STATE: Tarik status langganan sesungguhnya dari DB saat dialog terbuka!
   useEffect(() => {
@@ -52,14 +71,9 @@ export function KajianDetailDialog({ isOpen, onClose, kajian }: KajianDetailDial
         if (resData.success && resData.data && isMounted) {
           const activeList = resData.data as { entity_type: string; entity_key: string }[]
           
-          const normalize = (v: string) => v.toLowerCase().trim()
-            .replace(/-?\s*hafizh?ahull[aā]h\s*-?/g, '')
-            .replace(/-?\s*hafizhahum[aā]ull[aā]h\s*-?/g, '')
-            .replace(/-?\s*rahimahull[aā]h\s*-?/g, '')
-            .replace(/[^a-z0-9]/g, '')
-          const currentUstadzKey = normalize(displayPemateri)
-          const currentMasjidKey = normalize(displayTempat)
-          const currentKotaKey = normalize(kajian.kota)
+          const currentUstadzKey = generateFollowKey('USTADZ', displayPemateri)
+          const currentMasjidKey = generateFollowKey('MASJID', cleanTempat, kajian.kota)
+          const currentKotaKey = generateFollowKey('KOTA', kajian.kota)
 
           setFollowedUstadz(activeList.some(f => f.entity_type === 'USTADZ' && f.entity_key === currentUstadzKey))
           setFollowedMasjid(activeList.some(f => f.entity_type === 'MASJID' && f.entity_key === currentMasjidKey))
@@ -73,7 +87,7 @@ export function KajianDetailDialog({ isOpen, onClose, kajian }: KajianDetailDial
     void fetchActiveFollows()
 
     return () => { isMounted = false }
-  }, [isOpen, kajian, displayPemateri, displayTempat])
+  }, [isOpen, kajian, displayPemateri, cleanTempat])
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -89,11 +103,9 @@ export function KajianDetailDialog({ isOpen, onClose, kajian }: KajianDetailDial
 
   const hasPoster = !!kajian.poster_url
   
-  const gradientStyle = hasPoster
-    ? {}
-    : {
-        background: getCategoryGradient(kajian.audience, kajian.gradient_config?.angle),
-      }
+  const gradientStyle = {
+    background: getCategoryGradient(kajian.audience, kajian.gradient_config?.angle),
+  }
 
   const displayKontak = cleanVisual(kajian.kontak, 'Info\\s+Panitia\\s+Kajian|Info\\s+Panitia|Info|Kontak|Hubungi|WA|Telp', false)
   const displayWaktuMulai = cleanVisual(kajian.waktu_mulai, 'Waktu|Jam|Pukul', false)
@@ -105,7 +117,8 @@ export function KajianDetailDialog({ isOpen, onClose, kajian }: KajianDetailDial
     type: 'USTADZ' | 'MASJID' | 'KOTA', 
     name: string, 
     isFollowing: boolean, 
-    setFollowing: (v: boolean) => void
+    setFollowing: (v: boolean) => void,
+    extraValue?: string
   ) => {
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -125,7 +138,11 @@ export function KajianDetailDialog({ isOpen, onClose, kajian }: KajianDetailDial
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ entity_type: type, entity_name: name })
+        body: JSON.stringify({ 
+          entity_type: type, 
+          entity_name: name,
+          entity_extra: extraValue
+        })
       })
 
       const data = await response.json()
@@ -180,26 +197,26 @@ export function KajianDetailDialog({ isOpen, onClose, kajian }: KajianDetailDial
         <div className="flex-1 overflow-y-auto custom-scrollbar bg-card">
           
           {/* TOP: Media Section (Taller & Immersive) */}
-          {hasPoster ? (
-            <div className="relative w-full aspect-[4/3] overflow-hidden group">
+          <div className="relative w-full aspect-[16/10] overflow-hidden group bg-[#0b120d] border-b border-border/10">
+            {hasPoster ? (
               <img 
                 src={kajian.poster_url!} 
                 alt={displayMateri} 
-                className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-105"
+                className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-105 animate-in fade-in-30 duration-500"
               />
-              {/* Soft Vignette */}
-              <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-transparent" />
-            </div>
-          ) : (
-            <div style={gradientStyle} className="w-full aspect-[16/7] relative flex items-center justify-center text-white overflow-hidden">
-              <div className="absolute inset-0 opacity-25 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
-              <div className={`z-10 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-black/5 ${
-                kajian.audience === 'AKHWAT' ? 'text-rose-100' : kajian.audience === 'IKHWAN' ? 'text-blue-100' : 'text-emerald-50'
-              }`}>
-                KAJIAN ILMIYYAH
+            ) : (
+              <div style={gradientStyle} className="w-full h-full relative flex items-center justify-center text-white overflow-hidden animate-in fade-in-30 duration-500">
+                <div className="absolute inset-0 opacity-25 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
+                <div className={`z-10 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-black/5 ${
+                  kajian.audience === 'AKHWAT' ? 'text-rose-100' : kajian.audience === 'IKHWAN' ? 'text-blue-100' : 'text-emerald-50'
+                }`}>
+                  KAJIAN ILMIYYAH
+                </div>
               </div>
-            </div>
-          )}
+            )}
+            {/* Soft Vignette */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-transparent pointer-events-none" />
+          </div>
 
           {/* 🎭 THE FLOATING OVERLAP: Content floats gracefully OVER the bottom of the poster */}
           <div className="relative -mt-10 bg-card px-6 sm:px-8 pt-7 pb-8 rounded-t-[36px] shadow-[0_-12px_40px_rgba(0,0,0,0.12)] space-y-7 border-t border-border/30">
@@ -207,20 +224,65 @@ export function KajianDetailDialog({ isOpen, onClose, kajian }: KajianDetailDial
             {/* Decorative Drawer Grabber */}
             <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-12 h-1.5 bg-white/40 dark:bg-white/20 rounded-full blur-[0.5px] pointer-events-none" />
 
-            {/* Headers & Badges */}
-            <div className="space-y-3.5">
+            {/* 🏷️ HEADER ROW: Badges (Kiri) & Sesi Toggles (Kanan) */}
+            <div className="flex flex-wrap items-center justify-between gap-3.5 w-full">
+              
+              {/* KIRI: Badge Audience, Diliburkan, & Tanggal Masehi */}
               <div className="flex flex-wrap items-center gap-2.5">
                 <Badge variant={kajian.audience === 'AKHWAT' ? 'pink' : kajian.audience === 'IKHWAN' ? 'blue' : 'success'} className="font-extrabold tracking-wider uppercase rounded-lg text-[10px] px-2.5 py-1 shadow-sm">
                   {kajian.audience}
                 </Badge>
+                {kajian.is_cancelled && (
+                  <Badge variant="destructive" className="font-black tracking-wider uppercase border border-red-500/30 animate-pulse text-[9px] px-2 py-1 rounded-lg">
+                    Diliburkan 🚫
+                  </Badge>
+                )}
                 <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/10 px-3 py-1 rounded-lg flex items-center gap-1.5 shadow-inner">
                   <Calendar className="h-3 w-3 text-emerald-600 dark:text-emerald-400" /> 
                   {formatDisplayDate(kajian.tanggal_masehi)}
                 </span>
               </div>
-              
+
+              {/* KANAN: 📑 TABS PEMILIH SESI GANDA INTERAKTIF */}
+              {items.length > 1 && (
+                <div className="flex flex-wrap gap-1 bg-emerald-500/[0.03] dark:bg-emerald-500/[0.01] border border-emerald-500/10 p-0.5 rounded-2xl backdrop-blur-sm z-10 relative animate-in fade-in-50 duration-300">
+                  {items.map((item, idx) => {
+                    const isActive = idx === activeIdx
+                    const isBatal = item.is_cancelled
+                    
+                    const getLabel = (k: Kajian, index: number) => {
+                      const placeUpper = (k.tempat || '').toUpperCase()
+                      if (placeUpper.includes('SESI 1')) return 'Sesi 1'
+                      if (placeUpper.includes('SESI 2')) return 'Sesi 2'
+                      if (placeUpper.includes('SESI 3')) return 'Sesi 3'
+                      return `Sesi ${index + 1}`
+                    }
+
+                    return (
+                      <button
+                        key={item.id ?? idx}
+                        onClick={() => setActiveIdx(idx)}
+                        className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all duration-300 flex items-center gap-1 relative cursor-pointer select-none border
+                          ${isActive 
+                            ? 'bg-emerald-600 text-white border-emerald-500 shadow-sm shadow-emerald-600/20 scale-100' 
+                            : 'text-muted-foreground border-transparent hover:text-foreground hover:bg-emerald-500/5 scale-[0.98] hover:scale-100'
+                          }
+                          ${isBatal && !isActive ? 'line-through decoration-red-500/50 opacity-60' : ''}
+                        `}
+                      >
+                        {isBatal && <span className="text-[8px]">🚫</span>}
+                        <span>{getLabel(item, idx)}</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 📖 JUDUL MATERI & TANGGAL HIJRIYAH */}
+            <div className="space-y-3.5">
               <h2 className="text-xl sm:text-2xl font-black tracking-tight text-foreground leading-tight whitespace-normal pr-2">
-                {displayMateri}
+                {displayMateri || (kajian.is_cancelled ? '(Materi Diliburkan)' : '')}
               </h2>
               
               {kajian.tanggal_hijriyah && (
@@ -269,11 +331,14 @@ export function KajianDetailDialog({ isOpen, onClose, kajian }: KajianDetailDial
                     </div>
                     <div className="flex-1 overflow-hidden pr-1">
                       <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest leading-none mb-1.5">Masjid / Tempat</p>
-                      <p className="text-sm font-extrabold text-foreground leading-snug whitespace-normal break-words line-clamp-2">{displayTempat}</p>
+                      <p className="text-sm font-extrabold text-foreground leading-snug whitespace-normal break-words line-clamp-2">{cleanTempat}</p>
+                      {cleanAlamat && (
+                        <p className="text-[10px] mt-1 text-muted-foreground/80 whitespace-normal break-words leading-relaxed font-normal line-clamp-2">{cleanAlamat}</p>
+                      )}
                     </div>
                   </div>
                   <button
-                    onClick={() => handleFollowClick('MASJID', displayTempat, followedMasjid, setFollowedMasjid)}
+                    onClick={() => handleFollowClick('MASJID', cleanTempat, followedMasjid, setFollowedMasjid, kajian.kota)}
                     className={`px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-wider transition-all duration-300 ease-out flex items-center gap-1.5 shrink-0 select-none shadow-sm active:scale-95
                       ${followedMasjid 
                         ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/20 border-transparent' 
@@ -382,7 +447,7 @@ export function KajianDetailDialog({ isOpen, onClose, kajian }: KajianDetailDial
               if (navigator.share) {
                 void navigator.share({
                   title: `Kajian: ${displayMateri}`,
-                  text: `Hadirilah Kajian Sunnah bersama ${displayPemateri} di ${displayTempat} pada ${formatDisplayDate(kajian.tanggal_masehi)} pukul ${displayWaktuMulai}.`,
+                  text: `Hadirilah Kajian Sunnah bersama ${displayPemateri} di ${cleanTempat}${cleanAlamat ? ', ' + cleanAlamat : ''} pada ${formatDisplayDate(kajian.tanggal_masehi)} pukul ${displayWaktuMulai}.`,
                   url: window.location.href
                 })
               }

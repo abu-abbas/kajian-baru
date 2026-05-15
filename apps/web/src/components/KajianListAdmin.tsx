@@ -30,8 +30,8 @@ export function KajianListAdmin() {
   const fetchKajianData = async () => {
     setLoading(true)
     try {
-      // Ambil 50 data terakhir dari database untuk keperluan admin
-      const res = await fetch('/api/kajian?limit=50')
+      // Ambil 50 data terakhir dari database untuk keperluan admin (termasuk yang masih draf)
+      const res = await fetch('/api/kajian?limit=50&include_unpublished=true')
       const resData = await res.json() as ApiResponse<Kajian[]>
       if (res.ok && resData.success) {
         setKajians(resData.data ?? [])
@@ -153,6 +153,48 @@ export function KajianListAdmin() {
     }
   }
 
+  // Menerbitkan draf (Set is_published = true)
+  const handlePublishNow = async (id: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      const token = session?.access_token
+
+      const response = await fetch(`/api/kajian/${id}`, {
+        method: 'PATCH',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token ?? ''}`
+        },
+        body: JSON.stringify({ is_published: true }),
+      })
+
+      const resData = await response.json() as ApiResponse<Kajian>
+
+      if (response.ok && resData.success && resData.data) {
+        // Update local state instantly
+        setKajians(prev => prev.map(k => k.id === id ? resData.data! : k))
+        toast({
+          variant: 'success',
+          title: 'Berhasil Dipublikasikan ✨',
+          description: 'Kajian sekarang telah tayang live di halaman utama!'
+        })
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Gagal Mempublikasikan',
+          description: resData.error ?? 'Terjadi kegagalan API.'
+        })
+      }
+    } catch (err) {
+      console.error('Gagal mempublikasikan kajian:', err)
+      toast({
+        variant: 'destructive',
+        title: 'Kesalahan Sistem',
+        description: 'Gagal terhubung ke server.'
+      })
+    }
+  }
+
   // Filter pencarian lokal untuk kenyamanan admin (search by materi atau pemateri)
   const filteredKajians = kajians.filter(k => 
     k.materi.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -258,6 +300,24 @@ export function KajianListAdmin() {
 
                       {/* Metadata Info Center */}
                       <div className="space-y-1 flex-1">
+                        {/* Dynamic Status Badges */}
+                        <div className="flex gap-1.5 pb-0.5">
+                          {kajian.is_cancelled && (
+                            <span className="inline-flex items-center rounded-md bg-red-500/15 px-2 py-0.5 text-[9px] font-black tracking-wider text-red-600 dark:text-red-400 uppercase border border-red-500/20 shadow-inner">
+                              🚫 Diliburkan
+                            </span>
+                          )}
+                          {!kajian.is_published ? (
+                            <span className="inline-flex items-center rounded-md bg-yellow-500/15 px-2 py-0.5 text-[9px] font-black tracking-wider text-yellow-700 dark:text-yellow-400 uppercase border border-yellow-500/20">
+                              📋 Draft / Pending Review
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-md bg-emerald-500/15 px-2 py-0.5 text-[9px] font-black tracking-wider text-emerald-600 dark:text-emerald-400 uppercase border border-emerald-500/20">
+                              ✅ Published
+                            </span>
+                          )}
+                        </div>
+
                         {isEditing ? (
                           /* Mode Input Judul saat Edit */
                           <div className="space-y-1">
@@ -293,6 +353,17 @@ export function KajianListAdmin() {
                     {/* Kanan: Tombol Aksi Awal (Bila tidak sedang Hapus/Edit) */}
                     {!isEditing && !isDeleting && (
                       <div className="flex items-center gap-2 md:self-center shrink-0">
+                        {!kajian.is_published && (
+                          <Button 
+                            variant="default" 
+                            size="sm"
+                            onClick={() => handlePublishNow(kajian.id!)}
+                            className="h-9 px-3.5 rounded-xl text-xs font-black flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white active:scale-95 shadow-md shadow-emerald-600/20"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                            Publish
+                          </Button>
+                        )}
                         <Button 
                           variant="outline" 
                           size="sm"

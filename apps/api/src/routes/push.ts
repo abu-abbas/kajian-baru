@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import webPush from 'web-push'
 import { supabase } from '../lib/supabase.js'
 import type { ApiResponse, PushSubscriptionData, FollowEntityType, UserFollow, Kajian, DbNotification } from '@kajian-baru/types'
+import { generateFollowKey } from '@kajian-baru/parser'
 
 import type { AuthVariables } from '../middleware/auth.js'
 
@@ -131,18 +132,7 @@ pushRoutes.get('/vapid-key', async (c) => {
   return c.json({ success: true, data: { publicKey: vapidPublicKey }, error: null })
 })
 
-/**
- * Helper to normalize keys for search (lowercase + alphanumeric only)
- */
-const normalizeEntityKey = (name: string): string => {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/-?\s*hafizh?ahull[aā]h\s*-?/g, '')
-    .replace(/-?\s*hafizhahum[aā]ull[aā]h\s*-?/g, '')
-    .replace(/-?\s*rahimahull[aā]h\s*-?/g, '')
-    .replace(/[^a-z0-9]/g, '')
-}
+
 
 /**
  * GET /push/follows — Get list of what the current user follows
@@ -170,14 +160,18 @@ pushRoutes.get('/follows', async (c) => {
  */
 pushRoutes.post('/follows/toggle', async (c) => {
   const user = c.get('user') as { id: string }
-  const body = await c.req.json<{ entity_type: FollowEntityType; entity_name: string }>()
+  const body = await c.req.json<{ 
+    entity_type: FollowEntityType; 
+    entity_name: string;
+    entity_extra?: string; // Menyimpan Nama Kota untuk Composite Key pengaman bentrokan Masjid
+  }>()
 
   if (!body.entity_type || !body.entity_name) {
     const response: ApiResponse<null> = { success: false, data: null, error: 'Missing entity_type or entity_name' }
     return c.json(response, 400)
   }
 
-  const entityKey = normalizeEntityKey(body.entity_name)
+  const entityKey = generateFollowKey(body.entity_type, body.entity_name, body.entity_extra)
 
   // Check if follow already exists
   const { data: existing, error: checkError } = await supabase
@@ -292,11 +286,6 @@ pushRoutes.post('/notifications/mark-read', async (c) => {
  */
 export async function triggerNotificationsForKajian(kajianList: Kajian[]): Promise<void> {
   try {
-    const normalize = (val: string) => val.toLowerCase().trim()
-      .replace(/-?\s*hafizh?ahull[aā]h\s*-?/g, '')
-      .replace(/-?\s*hafizhahum[aā]ull[aā]h\s*-?/g, '')
-      .replace(/-?\s*rahimahull[aā]h\s*-?/g, '')
-      .replace(/[^a-z0-9]/g, '')
 
     const toTitleCase = (str: string): string => {
       if (!str) return ''
@@ -320,9 +309,9 @@ export async function triggerNotificationsForKajian(kajianList: Kajian[]): Promi
     }
 
     for (const kajian of kajianList) {
-      const ustadzKey = normalize(kajian.pemateri)
-      const masjidKey = normalize(kajian.tempat)
-      const kotaKey = normalize(kajian.kota)
+      const ustadzKey = generateFollowKey('USTADZ', kajian.pemateri)
+      const masjidKey = generateFollowKey('MASJID', kajian.tempat, kajian.kota)
+      const kotaKey = generateFollowKey('KOTA', kajian.kota)
 
       if (!ustadzKey && !masjidKey && !kotaKey) continue
 

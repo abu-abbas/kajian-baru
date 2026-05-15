@@ -23,6 +23,33 @@ const GRADIENT_PALETTES: ReadonlyArray<{ from: string; to: string }> = [
   { from: '#1a3a2a', to: '#4a9a6a' },  // hijau muda
 ]
 
+// ---- Region & Source Mapping Helpers ----
+const REGION_NORMALIZE_MAP: Record<string, string> = {
+  'JAK-TIM': 'Jakarta Timur',
+  'JAK TIM': 'Jakarta Timur',
+  'JAK-SEL': 'Jakarta Selatan',
+  'JAK SEL': 'Jakarta Selatan',
+  'AK-SEL': 'Jakarta Selatan', // Handling typo/pemotongan huruf depan secara cerdas!
+  'JAK-BAR': 'Jakarta Barat',
+  'JAK BAR': 'Jakarta Barat',
+  'JAK-UT': 'Jakarta Utara',
+  'JAK UT': 'Jakarta Utara',
+  'JAK-PUS': 'Jakarta Pusat',
+  'JAK PUS': 'Jakarta Pusat',
+  'TANG-SEL': 'Tangerang Selatan',
+  'TANGSEL': 'Tangerang Selatan',
+  'TANG SEL': 'Tangerang Selatan',
+  'BOGOR': 'Bogor',
+  'DEPOK': 'Depok',
+  'TANGERANG': 'Tangerang',
+  'BEKASI': 'Bekasi',
+}
+
+function normalizeRegion(raw: string): string {
+  const cleaned = raw.trim().toUpperCase().replace(/[\*\•○●]/g, '')
+  return REGION_NORMALIZE_MAP[cleaned] ?? raw.trim()
+}
+
 // ---- Main parse function ----
 
 /**
@@ -43,10 +70,10 @@ export function parseMessage(rawText: string): ParseResult {
     }
   }
 
-  // Step 1: Extract header info
+  // Step 1: Extract header info & global attributes (like kontributor)
   const header = extractHeader(text)
 
-  // Step 2: Split into individual kajian blocks
+  // Step 2: Split into individual kajian blocks (includes smart sub-session expanding!)
   const blocks = splitIntoBlocks(text)
 
   if (blocks.length === 0) {
@@ -58,18 +85,26 @@ export function parseMessage(rawText: string): ParseResult {
     }
   }
 
+  // Track region context as iteration proceeds!
+  let currentRegion = header.kota || 'Tangerang'
+
   // Step 3: Parse each block
   for (let i = 0; i < blocks.length; i++) {
     const block = blocks[i]
     if (!block) continue
 
+    // 🗺️ DYNAMIC REGION HUNTER: Tangkap tag wilayah di awal blok seperti *○●JAK-SEL●○*
+    const regionMatch = block.match(/○●\s*([^●○]+)\s*●○/)
+    if (regionMatch && regionMatch[1]) {
+      currentRegion = normalizeRegion(regionMatch[1])
+    }
+
     try {
-      const kajian = parseBlock(block, header, i)
+      const kajian = parseBlock(block, header, currentRegion, i)
       
       // 🛡️ GHOST BLOCK FILTER: Jika 3 pilar utama (materi, pemateri, tempat) kosong melompong, 
-      // ini dipastikan footer catatan kaki / disclaimer. Abaikan dari daftar!
-      if (!kajian.materi && !kajian.pemateri && !kajian.tempat) {
-        console.log(`[Parser] Mengabaikan Blok #${i+1} karena terdeteksi sebagai teks sampah/footer non-kajian.`)
+      // ini dipastikan footer catatan kaki / disclaimer. Abaikan dari daftar! (Kecuali jika ini status Libur)
+      if (!kajian.materi && !kajian.pemateri && !kajian.tempat && !kajian.is_cancelled) {
         continue
       }
       
@@ -128,11 +163,13 @@ type HeaderInfo = {
   kota: string
   tanggal_masehi: string
   tanggal_hijriyah: string
+  kontributor: string
 }
 
 function extractHeader(text: string): HeaderInfo {
-  const headerEnd = text.indexOf('📚')
-  const header = headerEnd !== -1 ? text.slice(0, headerEnd) : ''
+  // Batas header: bisa 📚 atau 🏡/🏢/🕌 pertama, atau '***' pertama
+  const boundaryIdx = text.search(/(?:📚|🏡|🏢|🕌|\*\*\*)/)
+  const header = boundaryIdx !== -1 ? text.slice(0, boundaryIdx) : text.slice(0, 500)
 
   // Extract tanggal masehi — e.g. "14 Mei 2026"
   const tanggalMatch = header.match(/(\d{1,2}\s+\w+\s+\d{4})/)
@@ -145,11 +182,15 @@ function extractHeader(text: string): HeaderInfo {
   const hijriMatch = header.match(/(\d{1,2}\s+\w+['']*\w*\s+\d{4})\s+[Hh]ijriyah/)
   const tanggal_hijriyah = hijriMatch?.[1] ?? ''
 
-  // Extract kota — e.g. "daerah Bekasi dan sekitarnya"
-  const kotaMatch = header.match(/daerah\s+(.+?)\s+dan\s+sekitarnya/i)
+  // Extract kota — e.g. "daerah Bekasi dan sekitarnya" atau "Wilayah Jabodetabek"
+  const kotaMatch = header.match(/(?:daerah|Wilayah)\s+([^&\n,]+?)(?:\s+dan\s+sekitarnya|\s+&|\n|$)/i)
   const kota = kotaMatch?.[1]?.trim() ?? ''
 
-  return { kota, tanggal_masehi, tanggal_hijriyah }
+  // ✍️ EXTRACT KONTRIBUTOR: Ambil info 'Creative by' atau 'Creator'
+  const creatorMatch = header.match(/(?:Creative\s+by|Creator|Oleh|Sumber)\s*[:\-–]\s*([^`\n]+)/i)
+  const kontributor = creatorMatch?.[1]?.trim().replace(/[\`\*\_]/g, '') ?? 'KajianBaru'
+
+  return { kota, tanggal_masehi, tanggal_hijriyah, kontributor }
 }
 
 // ---- Block splitting ----
@@ -157,31 +198,71 @@ function extractHeader(text: string): HeaderInfo {
 function splitIntoBlocks(text: string): string[] {
   const hasTilde = text.includes('~')
   const hasBookEmoji = text.includes('📚')
+  const hasTripleAsterisks = text.includes('***')
 
-  // 1. Pemisah Cacing (Format Monorepo Standar)
-  if (hasTilde) {
-    return text
+  let rawBlocks: string[] = []
+
+  // 1. Pemisah Tiga Bintang (Format Rekapan Massal / Kaskus)
+  if (hasTripleAsterisks) {
+    rawBlocks = text
+      .split('***')
+      .map((b) => b.trim())
+      .filter((b) => b.length > 0)
+  }
+  // 2. Pemisah Cacing (Format Monorepo Standar)
+  else if (hasTilde) {
+    rawBlocks = text
       .split('~')
       .map((b) => b.trim())
       .filter((b) => b.length > 0)
   }
-
-  // 2. Pemisah per Buku (Format WhatsApp Massal)
-  if (hasBookEmoji) {
+  // 3. Pemisah per Buku (Format WhatsApp Massal)
+  else if (hasBookEmoji) {
     const parts = text.split('📚')
     // Abaikan header pembuka sebelum buku pertama jika ada
-    const blocks = parts.slice(1).map((p) => '📚' + p)
-    if (blocks.length > 0) return blocks
+    rawBlocks = parts.slice(1).map((p) => '📚' + p)
+  } else {
+    // 🧠 FALLBACK CERDAS: Tanpa pembatas formal sama sekali.
+    rawBlocks = [text]
   }
 
-  // 3. 🧠 FALLBACK CERDAS: Tanpa pembatas formal sama sekali.
-  // Anggap SELURUH teks input adalah 1 blok kajian utuh (untuk caption foto, dll)
-  return [text]
+  // ---- 🧠 ADVANCED: INTERNAL SUB-SESSION EXPANDER ----
+  // Membelah otomatis blok yang mengandung "SESI 1" dan "SESI 2" menjadi dua entry virtual!
+  const expandedBlocks: string[] = []
+
+  for (const block of rawBlocks) {
+    const upperBlock = block.toUpperCase()
+    
+    const hasSesi1 = upperBlock.includes('SESI 1')
+    const hasSesi2 = upperBlock.includes('SESI 2')
+
+    if (hasSesi1 && hasSesi2) {
+      const sesi1Idx = upperBlock.indexOf('SESI 1')
+      const sesi2Idx = upperBlock.indexOf('SESI 2')
+      
+      const commonHeader = block.slice(0, sesi1Idx).trim()
+      const sesi1Content = block.slice(sesi1Idx, sesi2Idx).trim()
+      const sesi2Content = block.slice(sesi2Idx).trim()
+
+      // Bentuk dua blok kajian utuh yang mewarisi info lokasi & gmaps yang sama!
+      const block1 = `${commonHeader}\n${sesi1Content}`
+      const block2 = `${commonHeader}\n${sesi2Content}`
+      
+      expandedBlocks.push(block1, block2)
+    } else {
+      expandedBlocks.push(block)
+    }
+  }
+
+  return expandedBlocks
 }
 
 // ---- Per-block parsing ----
 
-function parseBlock(block: string, header: HeaderInfo, _index: number): Kajian {
+function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _index: number): Kajian {
+  // 🛑 Cek Pembatalan / Libur
+  const isLibur = block.toUpperCase().includes('KAJIAN DILIBURKAN') || block.toUpperCase().includes('DILIBURKAN')
+
   const lines = block.split('\n').map((l) => l.trim())
 
   let materiRaw = ''
@@ -199,20 +280,20 @@ function parseBlock(block: string, header: HeaderInfo, _index: number): Kajian {
     if (!line) continue
 
     // 🌍 Instant Maps Match: Jika baris murni berisi tautan Google Maps saja
-    const mapsUrlMatch = line.match(/^(https?:\/\/(?:maps\.google\.com|goo\.gl|maps\.app\.goo\.gl)\S+)/i)
+    const mapsUrlMatch = line.match(/^(?:🌏\s*G-maps\s*[:\-–]\s*)?(https?:\/\/(?:maps\.google\.com|goo\.gl|maps\.app\.goo\.gl)\S+)/i)
     if (mapsUrlMatch && line.replace(mapsUrlMatch[0], '').trim() === '') {
-      mapsStandalone = mapsUrlMatch[0]
+      mapsStandalone = mapsUrlMatch[1] ?? mapsUrlMatch[0]
       continue
     }
 
     // -- Field Detectors (Berbasis Emoji & Kata Kunci Indonesia) --
-    const isMateri = line.includes('📚') || line.match(/^(?:Materi|Tema|Judul|Kajian)[\s\w]*[:：\-–]/i)
-    const isPemateri = line.includes('🎙️') || line.includes('🎙') || line.match(/^(?:Pemateri|Penceramah|Narasumber|Bersama|Oleh)[\s\w]*[:：\-–]/i)
-    const isWaktu = line.includes('🕰️') || line.includes('🕰') || line.match(/^(?:Waktu|Jam|Pukul)[\s\w]*[:：\-–]/i)
-    const isTempat = line.includes('🕌') || line.match(/^(?:Tempat|Lokasi)[\s\w]*[:：\-–]/i)
-    const isAlamat = line.includes('📍') || line.includes('🗺️') || line.match(/^(?:Alamat|Maps|Google Maps)[\s\w]*[:：\-–]/i)
-    const isKontak = line.includes('📞') || line.match(/^(?:Info|Kontak|Hubungi|WA|Telp)[\s\w]*[:：\-–]/i)
-    const isHimbauan = line.includes('⚠️') || line.includes('📣') || line.includes('📢') || line.includes('🚫') || line.includes('💡') || line.match(/^(?:Himbauan|Catatan|NB|Perhatian)[\s\w]*[:：\-–]/i)
+    const isMateri = line.includes('📚') || line.match(/^(?:》|>\s*)?(?:Materi|Tema|Judul|Kajian|Sesi\s+\d)[\s\w]*[:：\-–]/i)
+    const isPemateri = line.includes('🎙️') || line.includes('🎙') || line.match(/^(?:》|>\s*)?(?:Pemateri|Penceramah|Narasumber|Bersama|Oleh)[\s\w]*[:：\-–]/i)
+    const isWaktu = line.includes('🕰️') || line.includes('🕰') || line.match(/^(?:》|>\s*)?(?:Waktu|Jam|Pukul)[\s\w]*[:：\-–]/i)
+    const isTempat = line.includes('🕌') || line.includes('🏡') || line.includes('🏢') || line.includes('🏛️') || line.match(/^(?:》|>\s*)?(?:Tempat|Lokasi)[\s\w]*[:：\-–]/i)
+    const isAlamat = line.includes('📍') || line.includes('🗺️') || line.includes('🌏') || line.match(/^(?:》|>\s*)?(?:Alamat|Maps|Google Maps|G-maps)[\s\w]*[:：\-–]/i)
+    const isKontak = line.includes('📞') || line.match(/^(?:》|>\s*)?(?:Info|Kontak|Hubungi|WA|Telp|CP|Registrasi)[\s\w]*[:：\-–]/i)
+    const isHimbauan = line.includes('⚠️') || line.includes('📣') || line.includes('📢') || line.includes('🚫') || line.includes('💡') || line.match(/^(?:》|>\s*)?(?:Himbauan|Catatan|NB|Perhatian)[\s\w]*[:：\-–]/i)
 
     if (isMateri) {
       materiRaw = line
@@ -230,8 +311,8 @@ function parseBlock(block: string, header: HeaderInfo, _index: number): Kajian {
       const innerMaps = line.match(/(https?:\/\/(?:maps\.google\.com|goo\.gl|maps\.app\.goo\.gl)\S+)/i)
       if (innerMaps) mapsStandalone = innerMaps[1] ?? ''
       alamatStandalone = line
-        .replace(/^(?:Alamat|Maps|Google Maps)\s*[:：\-–]?\s*/i, '')
-        .replace(/(?:📍|🗺️)\s*/g, '')
+        .replace(/^(?:》|>\s*)?(?:Alamat|Maps|Google Maps|G-maps)\s*[:：\-–]?\s*/i, '')
+        .replace(/(?:📍|🗺️|🌏)\s*/g, '')
         .replace(/(https?:\/\/\S+)/g, '')
         .trim()
       lastField = 'alamat'
@@ -254,18 +335,22 @@ function parseBlock(block: string, header: HeaderInfo, _index: number): Kajian {
         // Deteksi audiens melayang di bawah blok kontak (dalam kurung)
         if (line.match(/^\([^)]+\)$/)) {
           kontakRaw += '\n' + line
+        } else {
+          // Jika di awal-awal baris tanpa field pendeteksi, besar kemungkinan itu alamat yang menempel di bawah Nama Tempat
+          if (!materiRaw && !pemateriRaw && tempatRaw && !alamatStandalone) {
+            alamatStandalone += '\n' + line
+          }
         }
       }
     }
   }
 
-  // 💡 FALLBACK LEGACY: Jika mesin pencari baris gagal total (materi & tempat nihil), 
-  // kembalikan ke mode potong emoji substring klasik agar kompatibilitas terjaga!
+  // 💡 FALLBACK LEGACY: Jika mesin pencari baris gagal total
   if (!materiRaw && !tempatRaw) {
     materiRaw = extractField(block, ['📚'], ['🎙️', '🎙'])
     pemateriRaw = extractField(block, ['🎙️', '🎙'], ['🕰️', '🕰'])
-    waktuRaw = extractField(block, ['🕰️', '🕰'], ['🕌'])
-    tempatRaw = extractField(block, ['🕌'], ['📞'])
+    waktuRaw = extractField(block, ['🕰️', '🕰'], ['🕌', '🏡', '🏢'])
+    tempatRaw = extractField(block, ['🕌', '🏡', '🏢'], ['📞'])
     kontakRaw = extractField(block, ['📞'], [])
   }
 
@@ -274,10 +359,11 @@ function parseBlock(block: string, header: HeaderInfo, _index: number): Kajian {
   const pemateri = cleanPemateri(pemateriRaw)
   const { mulai, selesai } = parseWaktu(waktuRaw)
   const { tempat: parsedTempat, alamat: parsedAlamat, maps_url: parsedMaps } = parseTempat(tempatRaw)
-  const { kontak, audience } = parseKontak(kontakRaw)
+  const { kontak } = parseKontak(kontakRaw)
+  const audience = extractAudience(block) // 🕵️ SENSING AUDIENCE SECARA GLOBAL DI SELURUH BLOK!
 
   // Penggabungan ekstraksi inline dan standalone
-  const finalAlamat = (alamatStandalone || parsedAlamat).trim()
+  const finalAlamat = (alamatStandalone || parsedAlamat).trim().replace(/^[\s,]+|[\s,]+$/g, '')
   let finalMapsUrl = mapsStandalone || parsedMaps
 
   // 🌍 GLOBAL FALLBACK MAPS HUNTER
@@ -286,10 +372,10 @@ function parseBlock(block: string, header: HeaderInfo, _index: number): Kajian {
     finalMapsUrl = fallbackMaps?.[1] ?? ''
   }
 
-  // 📍 Penebalan Nama Tempat jika kosong tapi ada baris Masjid
+  // 📍 Penebalan Nama Tempat jika kosong tapi ada baris ikon gedung
   let finalTempat = parsedTempat
-  if (!finalTempat && block.includes('🕌')) {
-    const match = block.match(/🕌\s*(.+)/i)
+  if (!finalTempat) {
+    const match = block.match(/(?:🕌|🏡|🏢|🏛️|🏫)\s*(.+)/i)
     finalTempat = match?.[1]?.split('\n')[0]?.trim() ?? ''
   }
 
@@ -306,7 +392,7 @@ function parseBlock(block: string, header: HeaderInfo, _index: number): Kajian {
   }
 
   return {
-    kota: header.kota || 'Tangerang',
+    kota: currentRegion,
     tanggal_masehi: header.tanggal_masehi,
     tanggal_hijriyah: header.tanggal_hijriyah,
     materi,
@@ -322,6 +408,9 @@ function parseBlock(block: string, header: HeaderInfo, _index: number): Kajian {
     gradient_config,
     source_text: block,
     himbauan: finalHimbauan,
+    kontributor: header.kontributor,
+    is_cancelled: isLibur, // 🔥 Membawa status pembatalan secara sah!
+    is_published: true,   // Default published true (akan di-override API bila perlu, misal bot)
   }
 }
 
@@ -363,7 +452,7 @@ function stripPrefixTags(str: string, keywordsPattern: string): string {
   // Sapu bersih zero-width spaces (\u200b dll) yang sering ikut ter-copypaste dari WA/Telegram
   const cleanStr = str.replace(/[\u200b-\u200d\ufeff\ufe00-\ufe0f]/g, '').trim()
   return cleanStr
-    .replace(/^(?:📚|🎙️|🎙|🕰️|🕰|🕌|📞|📍|🗺️|⚠️|📣|📢|🚫|💡)\s*/gu, '')
+    .replace(/^(?:📚|🎙️|🎙|🕰️|🕰|🕌|🏡|🏢|🏛️|🏫|📞|📍|🗺️|🌏|⚠️|📣|📢|🚫|💡|》|>\s*)\s*/gu, '')
     .replace(new RegExp(`^(?:${keywordsPattern})[\\s\\w]*[:：\\-–]?\\s*`, 'i'), '')
     .trim()
 }
@@ -387,8 +476,10 @@ function cleanPemateri(raw: string): string {
 // ---- Waktu parsing ----
 
 function parseWaktu(raw: string): { mulai: string; selesai: string } {
-  // Bersihkan kata pengantar yang sering diketik kontributor
+  // Bersihkan kata pengantar & normalisasi SEMUA jenis tanda pisah ke format standar 's/d'
   let cleaned = stripPrefixTags(raw, 'Waktu|Jam|Pukul')
+    .replace(/\s*([–—]|\-|s\/d)\s*/gi, ' s/d ') // Mengamankan en-dash, em-dash, dan hyphen
+    .trim()
 
   if (!cleaned) return { mulai: '', selesai: 'Selesai' }
 
@@ -446,7 +537,19 @@ function parseTempat(raw: string): { tempat: string; alamat: string; maps_url: s
   // Remove maps URL from text
   let cleaned = textWithoutPrefix.replace(/(https?:\/\/\S+)/g, '').trim()
 
-  // Split tempat and alamat by parentheses — "Masjid X (Jl. Y)"
+  // 1. Deteksi Pemisah Baris Fisik (\n) - Paling akurat jika ada!
+  if (cleaned.includes('\n')) {
+    const lines = cleaned.split('\n').map(l => l.trim()).filter(Boolean)
+    if (lines.length > 1) {
+      return {
+        tempat: lines[0]!,
+        alamat: lines.slice(1).join(', '),
+        maps_url
+      }
+    }
+  }
+
+  // 2. Split tempat and alamat by parentheses — "Masjid X (Jl. Y)"
   const parenMatch = cleaned.match(/^(.+?)\s*\((.+)\)\s*$/)
   if (parenMatch) {
     return {
@@ -456,32 +559,59 @@ function parseTempat(raw: string): { tempat: string; alamat: string; maps_url: s
     }
   }
 
+  // 3. 🔥 PISAHKAN OTOMATIS MENGGUNAKAN PENANDA JALAN (Jl. / Jalan)
+  // Mendeteksi transisi ke alamat jalan raya khas penulisan Indonesia
+  const jlMatch = cleaned.match(/^(.+?)(?:\s+|,\s*)(Jl\.|Jalan)\s+(.+)$/i)
+  if (jlMatch && jlMatch[1] && jlMatch[2] && jlMatch[3]) {
+    return {
+      tempat: jlMatch[1].trim().replace(/,$/, '').trim(),
+      alamat: `${jlMatch[2]} ${jlMatch[3]}`.trim(),
+      maps_url
+    }
+  }
+
   return { tempat: cleaned, alamat: '', maps_url }
 }
 
 // ---- Kontak + audience parsing ----
 
-function parseKontak(raw: string): { kontak: string; audience: Audience } {
-  const audience = extractAudience(raw)
-
+function parseKontak(raw: string): { kontak: string } {
   // ✂️ Cukur awalan label kontak seperti "Info Panitia Kajian :" atau "Hubungi :"
-  const textWithoutPrefix = stripPrefixTags(raw, 'Info\\s+Panitia\\s+Kajian|Info\\s+Panitia|Info|Kontak|Hubungi|WA|Telp')
+  const textWithoutPrefix = stripPrefixTags(raw, 'Info\\s+Panitia\\s+Kajian|Info\\s+Panitia|Info|Kontak|Hubungi|WA|Telp|CP|Registrasi')
 
-  // Remove audience marker from kontak text
+  // Bersihkan sisa-sisa tag audience/kurung
   const kontak = textWithoutPrefix
     .replace(/\([^)]*\)\s*$/, '')
     .trim()
 
-  return { kontak, audience }
+  return { kontak }
 }
 
 function extractAudience(text: string): Audience {
-  const match = text.match(/\(([^)]+)\)\s*$/)
-  if (!match) return 'UMUM'
+  const raw = text.toUpperCase()
 
-  const raw = (match[1] ?? '').toUpperCase()
-  if (raw.includes('AKHWAT') || raw.includes('MUSLIMAH')) return 'AKHWAT'
-  if (raw.includes('IKHWAN') && !raw.includes('AKHWAT')) return 'IKHWAN'
+  // 🔥 DETEKSI EMOJI GENDER UNICODE (🚻, 🚹, 🚺)
+  const hasAkhwatEmoji = text.includes('🚺')
+  const hasIkhwanEmoji = text.includes('🚹')
+  const hasUmumEmoji = text.includes('🚻')
+
+  // 1. Cek kasus Khusus/Only terlebih dahulu
+  const isAkhwatOnly = raw.includes('KHUSUS AKHWAT') || raw.includes('AKHWAT ONLY') || raw.includes('MUSLIMAH ONLY') || raw.includes('UNTUK AKHWAT')
+  if (isAkhwatOnly) return 'AKHWAT'
+
+  const hasAkhwatText = raw.includes('AKHWAT') || raw.includes('MUSLIMAH')
+  const hasIkhwanText = raw.includes('IKHWAN')
+
+  const hasAkhwat = hasAkhwatText || hasAkhwatEmoji
+  const hasIkhwan = hasIkhwanText || hasIkhwanEmoji
+
+  // 2. Jika mengandung keduanya atau simbol umum (🚻), maka untuk UMUM!
+  if (hasUmumEmoji || (hasAkhwat && hasIkhwan)) return 'UMUM'
+  
+  // 3. Fallback parsial
+  if (hasAkhwat) return 'AKHWAT'
+  if (hasIkhwan) return 'IKHWAN'
+  
   return 'UMUM'
 }
 
@@ -520,3 +650,66 @@ function extractHimbauan(block: string): string {
 
   return ''
 }
+
+/**
+ * Menghasilkan Kunci Follow (entity_key) terstandarisasi untuk langganan push notification.
+ * Menangani penormalan case, pembersihan gelar ustadz, dan pengamanan tabrakan nama masjid antar kota (Composite Key).
+ */
+export function generateFollowKey(
+  type: 'USTADZ' | 'MASJID' | 'KOTA',
+  value: string | null | undefined,
+  extraValue?: string | null | undefined // Khusus MASJID, diisi kajian.kota untuk mencegah tabrakan antar wilayah
+): string {
+  if (!value) return ''
+
+  // Fungsi normalisasi teks dasar (lowercase & alphanumeric saja)
+  const cleanText = (v: string) => v.toLowerCase().trim()
+    .replace(/-?\s*hafizh?ahull[aā]h\s*-?/g, '')
+    .replace(/-?\s*hafizhahum[aā]ull[aā]h\s*-?/g, '')
+    .replace(/-?\s*rahimahull[aā]h\s*-?/g, '')
+    .replace(/[^a-z0-9]/g, '')
+
+  if (type === 'USTADZ') {
+    // Untuk Ustadz, kita bersihkan juga imbuhan gelar umum di ujung jika terdeteksi agar matching-nya tangguh
+    const baseName = value
+      .replace(/(?:\s*,\s*)(?:Lc|M\.A|Dr|Lc\.|M\.Pd|M\.Pd\.I|M\.Ag|B\.A|S\.Pd\.I|M\.Si|Ph\.D)\.?\s*$/gi, '')
+      .trim()
+    return cleanText(baseName)
+  }
+
+  if (type === 'MASJID') {
+    // 🔥 ANTI-COLLISION COMPOSITE KEY:
+    // 1. Sapu bersih sisa label internal seperti "SESI X" atau trailing dash
+    let rawMasjid = value.replace(/\s*SESI\s*\d+$/gi, '').trim().replace(/\s*-$/, '').trim()
+
+    // 2. Lakukan pemotongan alamat fisik dini secara cerdas (Sama persis seperti splitTempatAddress!)
+    // Kasus A: Jika memuat pemisah baris fisik (\n), ambil baris pertama
+    if (rawMasjid.includes('\n')) {
+      rawMasjid = rawMasjid.split('\n')[0] || rawMasjid
+    }
+    
+    // Kasus B: Deteksi tanda jalan resilient (Jl, Jalan, dkk)
+    const jlMatch = rawMasjid.match(/^(.+?)(?:\s+|,\s*)(Jl[n\.]*|Jalan|Ji[.\s])\s+(.+)$/i)
+    if (jlMatch && jlMatch[1]) {
+      rawMasjid = jlMatch[1].trim().replace(/,$/, '').trim()
+    } else {
+      // Kasus C: Deteksi kata kunci alamat Indonesia
+      const keywordMatch = rawMasjid.match(/^(.+?)(?:\s+|,\s*)(Kav\.?|Kavling|Ruko|Cluster|Komplek|Perum\.?|Perumahan|Blok|Block|Kp\.?|Kampung|Dusun|Desa|Gg\.?|Gang)\s+(.+)$/i)
+      if (keywordMatch && keywordMatch[1]) {
+        rawMasjid = keywordMatch[1].trim().replace(/,$/, '').trim()
+      }
+    }
+
+    // 3. Hancurkan sisa-sisa tanda kurung keterangan agar kebal terhadap teks tambahan yang berubah-ubah!
+    const baseMasjid = rawMasjid.replace(/\s*\([^)]*\)/g, '').trim()
+    const cleanMasjid = cleanText(baseMasjid)
+
+    // 4. Tempelkan KOTA (jika ada) di belakangnya sebagai pengaman namespace agar tidak bertabrakan antar daerah!
+    const cleanKota = extraValue ? cleanText(extraValue) : ''
+    return cleanKota ? `${cleanMasjid}${cleanKota}` : cleanMasjid
+  }
+
+  // Default / KOTA
+  return cleanText(value)
+}
+

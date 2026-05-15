@@ -5,13 +5,14 @@ import { parseMessage } from '@kajian-baru/parser'
 import type { Kajian } from '@kajian-baru/types'
 import { triggerNotificationsForKajian } from './push.js'
 import { authMiddleware, adminMiddleware } from '../middleware/auth.js'
+import { safeIngestKajian } from '../lib/ingest.js'
 
 // ---- Config ----
 const token = process.env['TELEGRAM_BOT_TOKEN'] ?? ''
 const adminChatId = Number(process.env['TELEGRAM_ADMIN_CHAT_ID'] ?? '0')
 
-// ---- In-memory cache for pending parse results (per chat) ----
-const pendingParseResults = new Map<number, Kajian[]>()
+// ---- In-memory cache for pending parse results (per user message context) ----
+const pendingParseResults = new Map<string, Kajian[]>()
 
 // ---- Bot instance (null jika token belum diset) ----
 const bot = token ? new Bot(token) : null
@@ -204,45 +205,49 @@ if (bot) {
 
     // --- Save parsed kajian to DB ---
     if (data.startsWith('save:')) {
-      const chatId = ctx.callbackQuery.message?.chat.id ?? 0
-      const kajianList = pendingParseResults.get(chatId)
+      const parseId = data.replace('save:', '')
+      const kajianList = pendingParseResults.get(parseId)
 
       if (!kajianList || kajianList.length === 0) {
         await ctx.answerCallbackQuery({ text: '⚠️ Data sudah kadaluarsa. Kirim ulang teks.' })
         return
       }
 
-      const { data: saved, error } = await supabase
-        .from('kajian')
-        .insert(kajianList)
-        .select()
+      try {
+        // 🛡️ JALANKAN DEDUPLIKASI CERDAS & PERTAHANAN SPAM (Set published: false, butuh review admin!)
+        const { saved, skipped, updated } = await safeIngestKajian(kajianList, false)
 
-      if (error) {
-        await ctx.editMessageText(`❌ Gagal menyimpan: ${error.message}`)
+        pendingParseResults.delete(parseId)
+
+        // Trigger push notifications (Hanya jika ada data yang BENAR-BENAR masuk atau ter-update & admin setuju tayang)
+        // Tapi karena default bot = Draft, push notifikasi nanti ditrigger saat Admin approve & set is_published = true!
+        // Jadi untuk saat ini kita hold push agar user gak spam.
+
+        let statusText = `💾 <b>Hasil Proses Ingest:</b>\n\n`
+        if (saved.length > 0) statusText += `✨ ${String(saved.length)} data baru tersimpan (Draft / Pending Approval)\n`
+        if (updated > 0) statusText += `🛑 ${String(updated)} kajian diperbarui menjadi LIBUR/BATAL\n`
+        if (skipped > 0) statusText += `⏭️ ${String(skipped)} data duplikat diabaikan\n`
+        
+        if (saved.length === 0 && updated === 0) {
+          statusText += `\n⚠️ Tidak ada data baru yang masuk (100% redundan/duplikat).`
+        } else {
+          statusText += `\n💡 Data tersimpan sebagai Draft. Silakan approve di Website Admin!`
+        }
+
+        await ctx.editMessageText(statusText, { parse_mode: 'HTML' })
+        await ctx.answerCallbackQuery({ text: '✅ Selesai!' })
+      } catch (err) {
+        const errMsg = err instanceof Error ? err.message : 'Internal error'
+        await ctx.editMessageText(`❌ Gagal menyimpan: ${errMsg}`)
         await ctx.answerCallbackQuery()
-        return
       }
-
-      pendingParseResults.delete(chatId)
-
-      // Trigger push notifications (background, non-blocking)
-      if (saved && saved.length > 0) {
-        void triggerNotificationsForKajian(saved as Kajian[])
-      }
-
-      await ctx.editMessageText(
-        `💾 <b>Berhasil menyimpan ${String(saved?.length ?? 0)} kajian ke website!</b>\n\n` +
-        '🔔 Notifikasi push telah dikirim ke subscriber.',
-        { parse_mode: 'HTML' }
-      )
-      await ctx.answerCallbackQuery({ text: '✅ Tersimpan!' })
       return
     }
 
     // --- Discard parsed result ---
     if (data.startsWith('discard:')) {
-      const chatId = ctx.callbackQuery.message?.chat.id ?? 0
-      pendingParseResults.delete(chatId)
+      const parseId = data.replace('discard:', '')
+      pendingParseResults.delete(parseId)
       await ctx.editMessageText('🗑️ Data parsing dibuang.')
       await ctx.answerCallbackQuery()
       return
@@ -277,13 +282,16 @@ if (bot) {
       return
     }
 
+    // Buat token ID unik untuk menampung payload chat ini secara mandiri (anti-overwrite!)
+    const parseId = `p_${String(Date.now())}_${String(userId)}`
+    
     // Simpan ke cache sementara
-    pendingParseResults.set(ctx.chat.id, result.kajian_list)
+    pendingParseResults.set(parseId, result.kajian_list)
 
     // Tampilkan preview + tombol aksi
     const keyboard = new InlineKeyboard()
-      .text('💾 Simpan ke Website', `save:${String(Date.now())}`)
-      .text('🗑️ Buang', `discard:${String(Date.now())}`)
+      .text('💾 Simpan ke Website', `save:${parseId}`)
+      .text('🗑️ Buang', `discard:${parseId}`)
 
     await ctx.reply(formatKajianPreview(result.kajian_list), {
       parse_mode: 'HTML',

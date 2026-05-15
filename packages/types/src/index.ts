@@ -37,6 +37,9 @@ export type Kajian = {
   gradient_config: GradientConfig
   source_text: string
   himbauan?: string
+  kontributor?: string
+  is_cancelled: boolean
+  is_published: boolean
   created_at?: string
   updated_at?: string
 }

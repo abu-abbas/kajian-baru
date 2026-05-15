@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { KajianCard } from '../components/KajianCard'
 import { ThemeToggle } from '../components/ui/theme-toggle'
 import { Button } from '../components/ui/button'
@@ -13,10 +13,12 @@ import { Compass, LogIn, LogOut, Settings, Search, SlidersHorizontal, X, Loader2
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { registerServiceWorker, subscribeUserToPush, unsubscribeUserFromPush, getPushSubscriptionStatus } from '../lib/push-notifications'
+import { groupKajiansByLocation } from '../lib/utils'
 
 export function Home() {
   const today = new Date().toISOString().split('T')[0] ?? ''
   const [kota, setKota] = useState('')
+  const lastLoadedTimestamp = useRef<string>(new Date().toISOString())
   const [audience, setAudience] = useState<Audience | ''>('')
 
   // Diinisialisasi kosong agar menampilkan TIMELINE GLOBAL (semua kajian terbaru)
@@ -36,6 +38,7 @@ export function Home() {
 
   // 🧬 Interaksi Kartu Kajian & Dialog Detil
   const [selectedKajian, setSelectedKajian] = useState<Kajian | null>(null)
+  const [selectedGroup, setSelectedGroup] = useState<Kajian[]>([]) // Wadah sesi ganda grup terpilih
   const [isDetailOpen, setIsDetailOpen] = useState(false)
 
   const { user, isAdmin, signInWithGoogle, signOut } = useAuth()
@@ -97,16 +100,23 @@ export function Home() {
 
   // 📡 POLLING FALLBACK: Cek data kajian baru setiap 30 detik (lebih reliable dari WebSocket)
   useEffect(() => {
-    // Simpan timestamp terakhir saat halaman pertama kali dimuat
-    const loadedAt = new Date().toISOString()
-    let latestCheckedAt = loadedAt
+    // Reset hitungan & majukan timestamp referensi setiap kali filter berubah agar sinkron!
+    lastLoadedTimestamp.current = new Date().toISOString()
+    setNewKajianCount(0)
 
     const pollForNewKajian = async () => {
       try {
-        const { count } = await supabase
+        let query = supabase
           .from('kajian')
           .select('*', { count: 'exact', head: true })
-          .gt('created_at', latestCheckedAt)
+          .gt('created_at', lastLoadedTimestamp.current)
+
+        // Terapkan filter aktif saat ini agar gelembung notifikasi relevan!
+        if (kota) query = query.eq('kota', kota)
+        if (tanggal) query = query.eq('tanggal_masehi', tanggal)
+        if (audience) query = query.eq('audience', audience)
+
+        const { count } = await query
 
         if (count && count > 0) {
           setNewKajianCount(count)
@@ -119,14 +129,15 @@ export function Home() {
     const interval = setInterval(() => void pollForNewKajian(), 30_000)
 
     return () => clearInterval(interval)
-  }, [])
+  }, [kota, tanggal, audience])
 
   const handleLoadNewTimeline = () => {
     // 1. Cinematic Smooth Scroll to Top
     window.scrollTo({ top: 0, behavior: 'smooth' })
 
-    // 2. Reset gelembung notifikasi timeline
+    // 2. Reset gelembung notifikasi timeline & majukan batas referensi pencarian instan!
     setNewKajianCount(0)
+    lastLoadedTimestamp.current = new Date().toISOString()
 
     // 3. Picu penarikan ulang data (Halaman Pertama)
     if (offset === 0) {
@@ -297,6 +308,8 @@ export function Home() {
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
         kajian={selectedKajian}
+        allSessions={selectedGroup}
+        initialIndex={selectedKajian ? Math.max(0, selectedGroup.indexOf(selectedKajian)) : 0}
       />
 
       {/* Super Premium Sticky Header */}
@@ -380,6 +393,7 @@ export function Home() {
                   onTogglePush={handleTogglePush}
                   onSelectKajian={(k) => {
                     setSelectedKajian(k)
+                    setSelectedGroup([k]) // Bungkus objek tunggal agar data synchronizer stabil!
                     setIsDetailOpen(true)
                   }}
                 />
@@ -519,12 +533,13 @@ export function Home() {
             <div className="flex flex-col space-y-6">
               {/* Grid Kartu Timeline */}
               <div className="grid gap-6 animate-in fade-in slide-in-from-bottom-6 duration-700 ease-out">
-                {kajianList.map((kajian, i) => (
+                {groupKajiansByLocation(kajianList).map((group, i) => (
                   <KajianCard
-                    key={kajian.id ?? i}
-                    kajian={kajian}
-                    onClick={() => {
-                      setSelectedKajian(kajian)
+                    key={group[0]?.id ?? i}
+                    kajian={group} // Oper seluruh session array agar di-grouping di level kartu!
+                    onClick={(selected) => {
+                      setSelectedKajian(selected)
+                      setSelectedGroup(group) // Oper data grup lengkap ke modal detail!
                       setIsDetailOpen(true)
                     }}
                   />

@@ -135,3 +135,8 @@ function generateGradient(tempat: string): GradientConfig {
 - Kontak format bervariasi: `0813-xxxx`, `+62813xxxx`, ada yang `(Whatsapp Chat Only)`
 - Beberapa kajian tidak punya maps URL sama sekali
 - Nama tempat kadang ada dalam kurung: `Masjid X (Komplek Y)`
+- **Cancellation Flag (`is_cancelled`)**: Jika blok kajian mengandung frasa `DILIBURKAN` secara case-insensitive, parser WAJIB mendeteksinya dan menetapkan flag `is_cancelled: true` alih-alih membuang blok data tersebut!
+- **Dynamic Place Splitter**: Di level parser engine (`packages/parser/src/index.ts`), parser harus pintar membagi teks `tempat` dan `alamat` secara dini:
+  1. Cek pembatas baris fisik (`\n`) -> Baris pertama Nama Venue, sisanya Alamat.
+  2. Cek transisi menuju penanda jalan (`Jl.` / `Jalan`) -> Belah kalimat di titik transisi tersebut!
+

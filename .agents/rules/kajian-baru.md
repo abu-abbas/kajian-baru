@@ -36,6 +36,8 @@ trigger: always_on
 - All DB writes go through the API, never directly from frontend
 - Use RLS policies as the security layer — always verify they are active
 - **Database Integrity**: Jangan pernah sengaja mengedit/mengubah data mentah di DB live secara "curang" (skrip migrasi pembersih ad-hoc) hanya untuk mengakomodasi inkonsistensi tampilan visual; semua inkonsistensi data historis di DB harus ditangani dengan ksatria di runtime layer UI menggunakan visual scrubbers yang tangguh!
+- **Centralized Data Ingest Flow**: Seluruh jalur masuk data baru (dari bot telegram maupun admin panel bulk) WAJIB dilarikan ke API Ingest Engine (`apps/api/src/lib/ingest.ts`). JANGAN PERNAH memanggil Supabase `.insert()` mentahan di route endpoint! Pintu gerbang `safeIngestKajian` memikul tanggung jawab sakral mencegah data duplikat dan secara cerdas memperbarui flag `is_cancelled: true` jika data kajian lama disubmit ulang dengan status Diliburkan!
+- **Unified Composite Follow Keys**: Sistem notifikasi langganan push (tabel `user_follows`) WAJIB menggunakan `generateFollowKey()` dari `@kajian-baru/parser` di kedua sisi (Frontend & API). Khusus entitas `MASJID`, kunci follow WAJIB digabungkan dengan data `KOTA` (Composite Key) dan tanda kurung keterangan dilucuti habis! Ini krusial untuk mencegah tabrakan nama masjid antar-kota yang sama, sekaligus menjamin kekebalan mutlak terhadap variasi teks ornamen dalam kurung!
 
 ## Auth Rules
 - Admin check: always verify against `admin_users` table, not just Supabase auth
@@ -60,6 +62,8 @@ trigger: always_on
 - KajianCard tanpa poster: tampilkan gradient dari `gradient_config`
 - KajianCard dengan poster: poster sebagai background dengan overlay gelap
 - **Runtime Visual Scrubbing**: Setiap rendering field data kajian (Materi, Pemateri, Tempat, dll) harus dibersihkan menggunakan helper terpusat `cleanVisual()` untuk menghapus tag label warisan masa lalu secara case-insensitive dan toleran terhadap sisa emoji/variation selectors.
+- **Smart Address Decoupler**: Setiap rendering `Tempat / Lokasi` di UI (kartu depan & dialog detail) WAJIB dilewatkan ke helper `splitTempatAddress()` di `utils.ts` untuk memisahkan Nama Venue (Bold) dari alamat fisik/jalan (Normal, Kecil, Tipis) secara dinamis! Ini sangat krusial agar keyword follow user tetap bersih dan visual terparkir sangat rapi!
+- **Seamless Multi-Session Support**: Komponen visual utama seperti `KajianCard` dan `KajianDetailDialog` harus dirancang fleksibel untuk menerima data homogen tunggal `Kajian` ATAU array grup ganda `Kajian[]`. Gunakan internal `activeIdx` state untuk navigasi antar-sesi, dan pastikan tombol follow/aksi secara realtime mengikuti context sesi yang sedang aktif!
 - Loading state harus selalu ada untuk setiap async operation
 - Error state harus selalu ditampilkan dengan pesan yang jelas
 - Selalu gunakan ikon Lucide React untuk UI labels. Dilarang keras menggunakan emoji Unicode sistem (seperti 🏠, 📍, ⚠️, 📁) agar visual tetap berkelas!

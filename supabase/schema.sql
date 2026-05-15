@@ -26,6 +26,9 @@ CREATE TABLE kajian (
   gradient_config JSONB NOT NULL DEFAULT '{"from":"#1a4731","to":"#2d7a4f","angle":135}'::jsonb,
   source_text TEXT NOT NULL DEFAULT '',
   himbauan TEXT NOT NULL DEFAULT '',
+  kontributor TEXT NOT NULL DEFAULT 'KajianBaru',
+  is_cancelled BOOLEAN NOT NULL DEFAULT FALSE,
+  is_published BOOLEAN NOT NULL DEFAULT TRUE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

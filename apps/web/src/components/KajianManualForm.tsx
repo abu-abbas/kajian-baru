@@ -9,6 +9,7 @@ import {
   Sparkles, Save, MapPin, Calendar, User, BookOpen, Clock,
   Compass, Users, CheckCircle2, AlertTriangle, Home, Link2, AlertCircle, Image
 } from 'lucide-react'
+import { splitTempatAddress } from '../lib/utils'
 
 export function KajianManualForm() {
   const [loading, setLoading] = useState(false)
@@ -87,11 +88,19 @@ export function KajianManualForm() {
     try {
       const { data } = await supabase
         .from('kajian')
-        .select('tempat')
+        .select('tempat, alamat')
         .ilike('tempat', `%${query}%`)
-        .limit(15)
+        .limit(30) // Tambah limit agar cakupan deteksi fuzzy lebih luas
       if (!data) return []
-      const raw = data.map(d => cleanLegacy(d.tempat, 'Tempat|Lokasi')).filter(Boolean)
+
+      // 🧼 Bersihkan teks warisan, dan belah alamatnya secara dini!
+      const raw = data.map(d => {
+        const cleanedLegacy = cleanLegacy(d.tempat, 'Tempat|Lokasi')
+        const { cleanTempat } = splitTempatAddress(cleanedLegacy, d.alamat)
+        return cleanTempat
+      }).filter(Boolean)
+
+      // Gabungkan duplikat case secara cerdas menjamin Masjid HANYA MUNCUL SEKALI!
       return getUniqueCaseInsensitive(raw).sort()
     } catch (e) {
       console.warn('Gagal mencari tempat:', e)
@@ -133,20 +142,27 @@ export function KajianManualForm() {
 
   // 🚀 Handler Cerdas Lazy-Loading: Ambil data Alamat & Maps jika Tempat dipilih!
   const handleTempatSelect = async (selectedTempat: string) => {
+    // Isi form utama dengan NAMA VENUE BERSIH (tanpa alamat mengotori input!)
     setFormData(prev => ({ ...prev, tempat: selectedTempat }))
+    
     try {
+      // Tarik detail kajian historis terakhir menggunakan pencarian nama fuzzy
       const { data } = await supabase
         .from('kajian')
-        .select('alamat, maps_url')
-        .ilike('tempat', selectedTempat)
+        .select('tempat, alamat, maps_url, kota')
+        .ilike('tempat', `%${selectedTempat}%`)
         .order('created_at', { ascending: false })
         .limit(1)
 
       if (data && data[0]) {
+        const cleanedLegacy = cleanLegacy(data[0]?.tempat, 'Tempat|Lokasi')
+        const { cleanAlamat } = splitTempatAddress(cleanedLegacy, data[0]?.alamat)
+
         setFormData(prev => ({
           ...prev,
-          alamat: cleanLegacy(data[0]?.alamat, 'Alamat|Maps') || prev.alamat || '',
-          maps_url: data[0]?.maps_url || prev.maps_url || ''
+          alamat: cleanAlamat || prev.alamat || '',
+          maps_url: data[0]?.maps_url || prev.maps_url || '',
+          kota: data[0]?.kota || prev.kota || 'Tangerang'
         }))
       }
     } catch (err) {
@@ -192,12 +208,20 @@ export function KajianManualForm() {
 
       if (result.success) {
         setSaveSuccess(true)
-        // Reset form parsial, sisakan beberapa default yang mungkin dipakai lagi
+        // Reset form menyeluruh, biarkan Kota & Tanggal tetap untuk mempermudah input batch berikutnya
         setFormData(prev => ({
           ...prev,
           materi: '',
           pemateri: '',
+          tempat: '',
+          alamat: '',
+          maps_url: '',
+          kontak: '',
+          himbauan: '',
+          tanggal_hijriyah: '',
           poster_url: null,
+          waktu_mulai: '18:00',
+          waktu_selesai: 'Selesai',
         }))
       } else {
         setError(result.error ?? 'Gagal menyimpan ke database')
