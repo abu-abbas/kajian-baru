@@ -80,12 +80,18 @@ if (bot) {
 
     // New user — register as pending
     const fullName = [ctx.from?.first_name, ctx.from?.last_name].filter(Boolean).join(' ')
-    await supabase.from('bot_users').insert({
+    const { error: insertError } = await supabase.from('bot_users').insert({
       telegram_id: userId,
       telegram_username: ctx.from?.username ?? null,
       full_name: fullName,
       status: 'pending',
     })
+
+    if (insertError) {
+      console.error('❌ [Bot] Gagal insert bot_users:', insertError.message, insertError.details, insertError.hint)
+      await ctx.reply(`❌ Gagal mendaftar: ${insertError.message}`)
+      return
+    }
 
     await ctx.reply(
       '⏳ Terima kasih! Permintaan akses Anda telah dikirim ke Administrator.\n' +
