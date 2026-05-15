@@ -77,6 +77,10 @@ trigger: always_on
   - Selalu terapkan konversi tanggal dari format database ISO (`YYYY-MM-DD`) ke format ramah Indonesia (`DD-MM-YYYY`) pada tampilan chat preview!
   - Untuk pesan masuk bot tanpa tanggal eksplisit, WAJIB gunakan intelligent fallback ke tanggal pesan Telegram tersebut dikirimkan (WIB context).
 
+## Deployment & Monorepo Rules
+- **Monorepo Watch-Path Force Trigger**: Karena Railway disetel hanya memantau `apps/api/**`, perubahan yang HANYA menyentuh *shared package* seperti `@kajian-baru/parser` atau `packages/types` akan otomatis **DI-SKIP** oleh trigger GitHub. 
+- **WAJIB HACK KOMENTAR**: Setiap kali merilis pembaruan di shared package tanpa menyentuh folder `apps/api`, tambahkan komentar pemicu dummy di baris paling atas `apps/api/src/routes/bot.ts` (misal: `// FORCE_REBUILD: update parser`) lalu push untuk memaksa CI/CD Railway membangun ulang sistem secara menyeluruh!
+
 ## What NOT to do
 - Jangan hardcode API keys — selalu dari environment variables
 - Jangan bypass RLS dengan service role key di frontend

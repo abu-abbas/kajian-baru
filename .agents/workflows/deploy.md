@@ -48,6 +48,11 @@ Vercel (web):
 Push ke branch main — Railway auto-deploy dari GitHub.
 Atau manual: `railway up` dari folder `apps/api`.
 
+> [!IMPORTANT]
+> **Monorepo Caveat (Watch-Paths Bypass)**: 
+> Jika commit Anda **HANYA** mengubah file di `@kajian-baru/parser` atau `packages/types` tanpa menyentuh apapun di `apps/api`, Railway **akan men-SKIP build** (No changes to watched files).
+> **Cara Mengatasinya**: Edit file `apps/api/src/routes/bot.ts`, tambahkan sebuah komentar dummy di baris paling atas (misal: `// REBUILD: update parser`), lalu commit & push untuk memicu paksa build runner.
+
 ### Step 7 — Deploy Web ke Vercel
 Push ke branch main — Vercel auto-deploy dari GitHub.
 Atau manual: `vercel --prod` dari folder `apps/web`.
