@@ -4,12 +4,14 @@
 > *Dikembangkan khusus sebagai submission MVP untuk **HSI Vibathon 2026**.*
 
 <p align="left">
+  <a href="https://github.com/abu-abbas/kajian-baru/actions/workflows/ci.yml"><img src="https://github.com/abu-abbas/kajian-baru/actions/workflows/ci.yml/badge.svg" alt="CI Validation"></a>
   <a href="https://www.typescriptlang.org/"><img src="https://img.shields.io/badge/TypeScript-100%25-3178c6?style=flat&logo=typescript&logoColor=white" alt="TypeScript"></a>
   <a href="https://react.dev/"><img src="https://img.shields.io/badge/React-18.x-61dafb?style=flat&logo=react&logoColor=black" alt="React"></a>
   <a href="https://hono.dev/"><img src="https://img.shields.io/badge/Hono-API-e36002?style=flat&logo=hono&logoColor=white" alt="Hono"></a>
   <a href="https://supabase.com/"><img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ecf8e?style=flat&logo=supabase&logoColor=white" alt="Supabase"></a>
   <a href="https://t.me/KajianBaruHSIVibathonBot"><img src="https://img.shields.io/badge/Telegram-Bot-26a5e4?style=flat&logo=telegram&logoColor=white" alt="Telegram Bot"></a>
-  <a href="https://kajian-baru.vercel.app/"><img src="https://img.shields.io/badge/Deploy-Vercel-000000?style=flat&logo=vercel&logoColor=white" alt="Vercel Status"></a>
+  <a href="https://kajian-baru.vercel.app/"><img src="https://img.shields.io/badge/Frontend-Vercel-000000?style=flat&logo=vercel&logoColor=white" alt="Vercel Status"></a>
+  <a href="https://railway.app/"><img src="https://img.shields.io/badge/Backend-Railway-131313?style=flat&logo=railway&logoColor=white" alt="Railway Status"></a>
   <img src="https://img.shields.io/badge/License-MIT-success?style=flat" alt="License">
 </p>
 
