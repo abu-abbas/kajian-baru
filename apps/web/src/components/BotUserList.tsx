@@ -1,8 +1,18 @@
 import { useState, useEffect } from 'react'
 import { Button } from './ui/button'
 import type { BotUser } from '@kajian-baru/types'
-import { UserCheck, UserX, Trash2, Loader2, Bot, Clock, CheckCircle2, XCircle, RefreshCw } from 'lucide-react'
+import { UserCheck, UserX, Trash2, Loader2, Bot, Clock, CheckCircle2, XCircle, RefreshCw, AlertTriangle } from 'lucide-react'
 import { supabase } from '../lib/supabase'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog'
 
 async function getAuthHeaders(): Promise<Record<string, string>> {
   const { data: { session } } = await supabase.auth.getSession()
@@ -16,6 +26,7 @@ export function BotUserList() {
   const [users, setUsers] = useState<BotUser[]>([])
   const [loading, setLoading] = useState(true)
   const [actionLoading, setActionLoading] = useState<number | null>(null)
+  const [userToDelete, setUserToDelete] = useState<number | null>(null)
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -55,7 +66,6 @@ export function BotUserList() {
   }
 
   const handleDelete = async (telegramId: number) => {
-    if (!confirm('Yakin ingin menghapus user ini?')) return
     setActionLoading(telegramId)
     try {
       const headers = await getAuthHeaders()
@@ -65,6 +75,7 @@ export function BotUserList() {
       console.error('Gagal menghapus user:', err)
     } finally {
       setActionLoading(null)
+      setUserToDelete(null)
     }
   }
 
@@ -100,6 +111,7 @@ export function BotUserList() {
   }
 
   const pendingCount = users.filter(u => u.status === 'pending').length
+  const userObjectToDelete = users.find(u => u.telegram_id === userToDelete)
 
   return (
     <div className="space-y-4">
@@ -185,7 +197,7 @@ export function BotUserList() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      onClick={() => void handleDelete(user.telegram_id)}
+                      onClick={() => setUserToDelete(user.telegram_id)}
                       title="Hapus"
                       className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                     >
@@ -198,6 +210,31 @@ export function BotUserList() {
           )
         })}
       </div>
+
+      {/* Modern Glassmorphism Confirmation Dialog */}
+      <AlertDialog open={userToDelete !== null} onOpenChange={(open) => !open && setUserToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <div className="h-12 w-12 rounded-2xl bg-destructive/10 text-destructive flex items-center justify-center mb-2">
+              <AlertTriangle className="h-6 w-6" />
+            </div>
+            <AlertDialogTitle>Konfirmasi Hapus Pengguna</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus <strong className="text-foreground">{userObjectToDelete?.full_name || 'user ini'}</strong> dari daftar bot? 
+              Aksi ini tidak dapat dibatalkan dan user tersebut harus mendaftar ulang jika ingin mengirim kajian lagi.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-2">
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => userToDelete && void handleDelete(userToDelete)}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-md shadow-destructive/10"
+            >
+              Ya, Hapus User
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

@@ -12,6 +12,7 @@
   "dependencies": {
     "@kajian-baru/parser": "workspace:*",
     "@kajian-baru/types": "workspace:*",
+    "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-slot": "^1.2.4",
     "@supabase/supabase-js": "^2.45.0",
     "class-variance-authority": "^0.7.1",
