@@ -161,8 +161,8 @@ export function Admin() {
       <header className="sticky top-0 z-50 bg-background/50 backdrop-blur-xl border-b border-border/50 transition-colors duration-500">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between relative">
 
-          {/* KIRI: Label Identitas (Menghilang di mobile saat scroll, memudar di desktop) */}
-          <div className={`flex items-center gap-2 sm:gap-3 transition-all duration-500 whitespace-nowrap ${isScrolled ? 'w-0 opacity-0 overflow-hidden sm:w-auto sm:opacity-40 sm:scale-95 sm:hover:opacity-100' : 'opacity-100 scale-100'}`}>
+          {/* KIRI: Label Identitas (Memudar halus saat scroll) */}
+          <div className={`flex items-center gap-2 sm:gap-3 transition-all duration-500 whitespace-nowrap ${isScrolled ? 'opacity-40 scale-95 hover:opacity-100' : 'opacity-100 scale-100'}`}>
             <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-sm">
               <ShieldCheck className="h-5 w-5" />
             </div>
@@ -177,11 +177,11 @@ export function Admin() {
           </div>
 
           {/* 🧬 TENGAH (MORPH CENTER NAVIGATION): Turun meluncur saat halaman digulir ke bawah */}
-          <div className={`absolute left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 flex items-center justify-center pointer-events-none z-20`}>
-            <div className={`flex items-center gap-0.5 bg-secondary/40 border border-border/60 p-1 rounded-xl backdrop-blur-md transition-all duration-500 shadow-sm pointer-events-auto max-w-full overflow-x-auto custom-scrollbar ${
+          <div className={`absolute top-full left-0 w-full sm:w-auto sm:left-1/2 sm:top-1/2 sm:-translate-y-1/2 sm:-translate-x-1/2 flex items-center justify-center pointer-events-none z-20`}>
+            <div className={`flex items-center justify-start sm:justify-center gap-1 sm:gap-0.5 bg-background/90 sm:bg-secondary/40 border-b sm:border border-border/60 py-2 px-3 sm:p-1 sm:rounded-xl backdrop-blur-xl transition-all duration-500 shadow-md sm:shadow-sm pointer-events-auto w-full sm:w-auto overflow-x-auto custom-scrollbar ${
               isScrolled
                 ? 'opacity-100 translate-y-0 scale-100'
-                : 'opacity-0 -translate-y-4 scale-95'
+                : 'opacity-0 -translate-y-2 sm:-translate-y-4 scale-100 sm:scale-95'
             }`}>
             <button
               onClick={() => setActiveTab('parser')}
