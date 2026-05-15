@@ -27,7 +27,8 @@ Proyek ini dibangun menggunakan arsitektur **Monorepo** berbasis `pnpm workspace
 | **Backend API** | `Hono` (Berjalan sangat cepat di `Railway`) |
 | **Database & Auth** | `Supabase` (PostgreSQL, RLS Policies & Google OAuth) |
 | **Notification** | Native `Web Push API` (Tanpa Firebase dependency) |
-| **UI Utility** | `Lucide React` + `Framer Motion` + Glassmorphism Utilities |
+| **Telegram Bot** | `Grammy` (Bot Framework untuk manajemen otomatisasi) |
+| **UI Utility** | `Lucide React` + Glassmorphism Utilities |
 
 ---
 
@@ -78,6 +79,7 @@ Sistem akan hidup secara otomatis di:
 *   **Smart Suggestion Engine**: Dropdown prediktif debounced (400ms, min 3 huruf) dengan kecerdasan case-insensitive yang otomatis menggabungkan duplikasi tulisan (e.g. `Ustadz Fulan` vs `ustadz fulan`).
 *   **Dynamic Theme Cards**: Poster kajian otomatis berubah tema gradiennya menyesuaikan Target Audience (Ikhwan, Akhwat, atau Umum).
 *   **Web Push Native**: Memungkinkan user berlangganan update jadwal kajian baru secara langsung melalui browser mobile maupun desktop.
+*   **Telegram Bot Ingestion & Command Center**: Integrasi penuh dengan bot Telegram interaktif (`@KajianBaruHSIVibathonBot`) untuk membantu proses input data, sinkronisasi notifikasi ke channel, serta manajemen otorisasi user bot langsung dari panel dashboard Admin.
 
 ---
 
