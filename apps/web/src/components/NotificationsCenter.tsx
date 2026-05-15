@@ -231,7 +231,7 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
 
       {/* 🌌 DYNAMIC THEMED DROPDOWN */}
       {isOpen && (
-        <div className="absolute right-0 mt-3 w-80 origin-top-right bg-card dark:bg-[#060c08]/95 text-card-foreground backdrop-blur-2xl border border-border dark:border-emerald-500/20 rounded-2xl shadow-2xl dark:shadow-[#020503]/80 z-50 py-2 animate-in slide-in-from-top-3 duration-300 overflow-hidden">
+        <div className="fixed sm:absolute top-[72px] sm:top-auto sm:mt-3 right-4 left-4 sm:left-auto sm:right-0 w-auto sm:w-80 origin-top sm:origin-top-right bg-card dark:bg-[#060c08] text-card-foreground border border-border dark:border-emerald-500/20 rounded-2xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.5)] z-[100] py-2 animate-in slide-in-from-top-3 duration-300 overflow-hidden">
 
           {/* Header Dropdown */}
           <div className="px-4 py-2.5 border-b border-border dark:border-emerald-500/10 flex items-center justify-between">

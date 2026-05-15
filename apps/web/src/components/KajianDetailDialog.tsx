@@ -4,7 +4,7 @@ import { Badge } from './ui/badge'
 import { 
   X, Calendar, Clock, MapPin, Phone, Compass, 
   Navigation, Share2, BellRing, BellMinus, CheckCircle2,
-  Mic, Building2, Map, Moon, AlertCircle, Ban
+  Mic, Building2, Map, Moon, AlertCircle, Ban, Bell, BellOff, Lock, Loader2
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from './ui/button'
@@ -38,7 +38,7 @@ export function KajianDetailDialog({
   const [followedUstadz, setFollowedUstadz] = useState(false)
   const [followedMasjid, setFollowedMasjid] = useState(false)
   const [followedKota, setFollowedKota] = useState(false)
-  const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const [toastMsg, setToastMsg] = useState<{ text: string; type: 'auth' | 'loading' | 'follow' | 'unfollow' | 'error' } | null>(null)
 
 
 
@@ -123,14 +123,14 @@ export function KajianDetailDialog({
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) {
-        setToastMsg('🔒 Mohon Masuk/Login Terlebih Dahulu!')
+        setToastMsg({ text: 'Mohon Masuk/Login Terlebih Dahulu!', type: 'auth' })
         setTimeout(() => setToastMsg(null), 2500)
         return
       }
 
       // Optimistic UI state update (Sangat responsif!)
       setFollowing(!isFollowing)
-      setToastMsg(!isFollowing ? `⏳ Menyambungkan notifikasi...` : `⏳ Memutuskan notifikasi...`)
+      setToastMsg({ text: !isFollowing ? 'Menyambungkan notifikasi...' : 'Memutuskan notifikasi...', type: 'loading' })
 
       const response = await fetch('/api/push/follows/toggle', {
         method: 'POST',
@@ -149,19 +149,20 @@ export function KajianDetailDialog({
 
       if (data.success) {
         const textType = type === 'USTADZ' ? 'Ustadz' : type === 'MASJID' ? 'Masjid' : 'Kota'
-        setToastMsg(
-          data.data.status === 'FOLLOWED'
-            ? `🔔 Berhasil mengikuti ${textType}: ${name}`
-            : `🔕 Berhenti menerima notifikasi ${textType}!`
-        )
+        setToastMsg({
+          text: data.data.status === 'FOLLOWED'
+            ? `Berhasil mengikuti ${textType}: ${name}`
+            : `Berhenti menerima notifikasi ${textType}!`,
+          type: data.data.status === 'FOLLOWED' ? 'follow' : 'unfollow'
+        })
       } else {
         // Gagal: Kembalikan state visual ke sebelumnya
         setFollowing(isFollowing)
-        setToastMsg(`❌ Gagal: ${String(data.error ?? 'Gangguan sistem')}`)
+        setToastMsg({ text: `Gagal: ${String(data.error ?? 'Gangguan sistem')}`, type: 'error' })
       }
     } catch (error) {
       setFollowing(isFollowing)
-      setToastMsg('❌ Terjadi gangguan koneksi internet!')
+      setToastMsg({ text: 'Terjadi gangguan koneksi internet!', type: 'error' })
     } finally {
       setTimeout(() => setToastMsg(null), 3000)
     }
@@ -175,11 +176,23 @@ export function KajianDetailDialog({
 
       {/* Interactive Dynamic Toast Feedback */}
       {toastMsg && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-950/95 border border-emerald-500/30 backdrop-blur-md text-emerald-100 px-5 py-3 rounded-full shadow-2xl shadow-emerald-900/20 flex items-center gap-2.5 text-xs font-black tracking-wider uppercase animate-in slide-in-from-top-6 duration-300">
-          <div className="h-5 w-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-            <CheckCircle2 className="h-3.5 w-3.5" />
+        <div className={`absolute top-6 left-1/2 -translate-x-1/2 z-50 border backdrop-blur-md px-5 py-3 rounded-full shadow-2xl flex items-center gap-2.5 text-xs font-black tracking-wider uppercase animate-in slide-in-from-top-6 duration-300 ${
+          toastMsg.type === 'error' ? 'bg-rose-950/95 border-rose-500/30 text-rose-100 shadow-rose-900/20' :
+          toastMsg.type === 'auth' ? 'bg-amber-950/95 border-amber-500/30 text-amber-100 shadow-amber-900/20' :
+          'bg-emerald-950/95 border-emerald-500/30 text-emerald-100 shadow-emerald-900/20'
+        }`}>
+          <div className={`h-5 w-5 rounded-full flex items-center justify-center shrink-0 ${
+            toastMsg.type === 'error' ? 'bg-rose-500/20 text-rose-400' :
+            toastMsg.type === 'auth' ? 'bg-amber-500/20 text-amber-400' :
+            'bg-emerald-500/20 text-emerald-400'
+          }`}>
+            {toastMsg.type === 'loading' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> :
+             toastMsg.type === 'follow' ? <Bell className="h-3.5 w-3.5 animate-swing origin-top" /> :
+             toastMsg.type === 'unfollow' ? <BellOff className="h-3.5 w-3.5" /> :
+             toastMsg.type === 'auth' ? <Lock className="h-3.5 w-3.5" /> :
+             <AlertCircle className="h-3.5 w-3.5" />}
           </div>
-          <span>{toastMsg}</span>
+          <span>{toastMsg.text}</span>
         </div>
       )}
 
