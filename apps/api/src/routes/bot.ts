@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase.js'
 import { parseMessage } from '@kajian-baru/parser'
 import type { Kajian } from '@kajian-baru/types'
 import { triggerNotificationsForKajian } from './push.js'
+import { authMiddleware, adminMiddleware } from '../middleware/auth.js'
 
 // ---- Config ----
 const token = process.env['TELEGRAM_BOT_TOKEN'] ?? ''
@@ -292,8 +293,8 @@ if (bot) {
   // Webhook endpoint — menerima update dari Telegram
   botRoutes.post('/webhook', webhookCallback(bot, 'hono'))
 
-  // Setup endpoint — sekali panggil untuk mendaftarkan webhook
-  botRoutes.get('/setup', async (c) => {
+  // Setup endpoint — sekali panggil untuk mendaftarkan webhook (admin only)
+  botRoutes.get('/setup', authMiddleware, adminMiddleware, async (c) => {
     const host = process.env['RAILWAY_PUBLIC_DOMAIN']
       ?? 'kajian-baruapi-production.up.railway.app'
     const webhookUrl = `https://${host}/bot/webhook`
@@ -305,8 +306,8 @@ if (bot) {
     return c.json({ success: true, webhook_url: webhookUrl, telegram_response: result })
   })
 
-  // Info endpoint — health check bot
-  botRoutes.get('/info', async (c) => {
+  // Info endpoint — health check bot (admin only)
+  botRoutes.get('/info', authMiddleware, adminMiddleware, async (c) => {
     const res = await fetch(`https://api.telegram.org/bot${token}/getMe`)
     const result = await res.json() as Record<string, unknown>
     return c.json({ success: true, bot_info: result })
