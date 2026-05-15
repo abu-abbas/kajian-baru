@@ -28,7 +28,7 @@ Masalah klasik pengumuman kajian di WhatsApp/Telegram yang terkadang sulit dicar
 
 ## 🛠️ Arsitektur & Teknologi Stack
 
-Proyek ini dibangun menggunakan arsitektur **Monorepo** berbasis `pnpm workspaces` dan dijamin **Full TypeScript** dari hulu ke hilir.
+Proyek ini dibangun menggunakan arsitektur **Monorepo** berbasis `pnpm workspaces` dan insyaallah **Full TypeScript**.
 
 | Lapisan / Domain | Teknologi Pilihan |
 | :--- | :--- |
