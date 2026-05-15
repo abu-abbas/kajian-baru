@@ -62,10 +62,11 @@ function extractBetweenEmojis(text: string, startEmoji: string, endEmojis: strin
 ### Step 4: Clean pemateri
 ```typescript
 function cleanPemateri(raw: string): string {
-  return raw
-    .replace(/-\s*hafizh?ahullah\s*-/gi, '')
-    .replace(/-\s*hafizhahuma?ullah\s*-/gi, '')
-    .replace(/-\s*rahimahullah\s*-/gi, '')
+  return stripPrefixTags(raw, 'Pemateri|Penceramah|Narasumber|Bersama|Oleh')
+    // Normalisasi suffix (hilangkan tanda minus di sekitar teks tapi pertahankan isinya!)
+    .replace(/\s*-\s*(hafizh?ahull[ah]*|hafizhahuma?ull[ah]*|rahimahull[ah]*)\s*-\s*/gi, ' $1 ')
+    .replace(/\s*-\s*(hafizh?ahull[ah]*|hafizhahuma?ull[ah]*|rahimahull[ah]*)\b/gi, ' $1')
+    .replace(/\b(hafizh?ahull[ah]*|hafizhahuma?ull[ah]*|rahimahull[ah]*)\s*-\s*/gi, '$1 ')
     .replace(/\s+/g, ' ')
     .trim()
 }
@@ -74,34 +75,67 @@ function cleanPemateri(raw: string): string {
 ### Step 5: Parse waktu
 ```typescript
 function parseWaktu(raw: string): { mulai: string; selesai: string } {
-  // Format: "10.00 s/d 12.00 WIB"
-  const timeMatch = raw.match(/(\d{1,2}[.:]\d{2})\s+s\/d\s+(\d{1,2}[.:]\d{2})/)
-  if (timeMatch) {
+  // Bersihkan kata pengantar & normalisasi SEMUA jenis tanda pisah
+  let cleaned = stripPrefixTags(raw, 'Waktu|Jam|Pukul')
+    .replace(/\s*([–—]|\-|s\/d)\s*/gi, ' s/d ')
+    .trim()
+
+  if (!cleaned) return { mulai: '', selesai: 'Selesai' }
+
+  // 1. Format: "10.00 s/d 12.00 WIB"
+  const twoTimeMatch = cleaned.match(/(\d{1,2}[.:]\d{2})\s*(?:WIB|WITA|WIT)?\s+s\/d\s+(\d{1,2}[.:]\d{2})/i)
+  if (twoTimeMatch) {
     return {
-      mulai: timeMatch[1].replace('.', ':'),
-      selesai: timeMatch[2].replace('.', ':')
+      mulai: (twoTimeMatch[1] ?? '').replace('.', ':'),
+      selesai: (twoTimeMatch[2] ?? '').replace('.', ':'),
     }
   }
 
-  // Format: "Ba'da Shalat Ashar s/d Selesai"
-  const badaMatch = raw.match(/(Ba['']da\s+Shalat\s+\w+)\s+s\/d\s+(\w+)/)
-  if (badaMatch) {
-    return { mulai: badaMatch[1], selesai: badaMatch[2] }
+  // 2. Format: "10.00 WIB s/d Selesai"
+  const oneTimeMatch = cleaned.match(/(\d{1,2}[.:]\d{2}(?:\s*(?:WIB|WITA|WIT))?)\s+s\/d\s+(.+)/i)
+  if (oneTimeMatch) {
+    return {
+      mulai: (oneTimeMatch[1] ?? '').replace('.', ':'),
+      selesai: (oneTimeMatch[2] ?? '').trim(),
+    }
   }
 
-  return { mulai: raw, selesai: 'Selesai' }
+  // 3. Format: "Ba'da Shalat Ashar s/d Selesai"
+  const badaMatch = cleaned.match(/(Ba['''']da\s+Shalat\s+\w+)\s+s\/d\s+(.+)/i)
+  if (badaMatch) {
+    return { 
+      mulai: badaMatch[1] ?? cleaned, 
+      selesai: (badaMatch[2] ?? 'Selesai').trim() 
+    }
+  }
+
+  return { mulai: cleaned, selesai: 'Selesai' }
 }
 ```
 
 ### Step 6: Extract audience
 ```typescript
 function extractAudience(text: string): Audience {
-  const match = text.match(/\(([^)]+)\)\s*$/)
-  if (!match) return 'UMUM'
+  const raw = text.toUpperCase()
 
-  const raw = match[1].toUpperCase()
-  if (raw.includes('AKHWAT') || raw.includes('MUSLIMAH')) return 'AKHWAT'
-  if (raw.includes('IKHWAN') && !raw.includes('AKHWAT')) return 'IKHWAN'
+  // 🕵️ DETEKSI EMOJI GENDER UNICODE (🚻, 🚹, 🚺)
+  const hasAkhwatEmoji = text.includes('🚺')
+  const hasIkhwanEmoji = text.includes('🚹')
+  const hasUmumEmoji = text.includes('🚻')
+
+  // 1. Cek kasus Khusus/Only
+  const isAkhwatOnly = raw.includes('KHUSUS AKHWAT') || raw.includes('AKHWAT ONLY') || raw.includes('MUSLIMAH ONLY') || raw.includes('UNTUK AKHWAT')
+  if (isAkhwatOnly) return 'AKHWAT'
+
+  const hasAkhwatText = raw.includes('AKHWAT') || raw.includes('MUSLIMAH')
+  const hasIkhwanText = raw.includes('IKHWAN')
+
+  const hasAkhwat = hasAkhwatText || hasAkhwatEmoji
+  const hasIkhwan = hasIkhwanText || hasIkhwanEmoji
+
+  if (hasUmumEmoji || (hasAkhwat && hasIkhwan)) return 'UMUM'
+  if (hasAkhwat) return 'AKHWAT'
+  if (hasIkhwan) return 'IKHWAN'
   return 'UMUM'
 }
 ```
