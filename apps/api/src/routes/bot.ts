@@ -1,3 +1,4 @@
+// REBUILD_TRIGGER: Synchronize with latest parser city-inference intelligence
 import { Hono } from 'hono'
 import { Bot, InlineKeyboard, webhookCallback } from 'grammy'
 import { supabase } from '../lib/supabase.js'
