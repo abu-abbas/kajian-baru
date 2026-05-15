@@ -15,6 +15,14 @@ const adminChatId = Number(process.env['TELEGRAM_ADMIN_CHAT_ID'] ?? '0')
 // ---- In-memory cache for pending parse results (per user message context) ----
 const pendingParseResults = new Map<string, Kajian[]>()
 
+// ---- ⚡ ADVANCED: In-memory cache for aggregating split messages (anti-Telegram 4096 limit) ----
+type MessageBuffer = {
+  textParts: string[]
+  timer: NodeJS.Timeout | null
+  resolver: ((value: string) => void) | null
+}
+const userMessageBuffers = new Map<number, MessageBuffer>()
+
 // ---- Bot instance (null jika token belum diset) ----
 const bot = token ? new Bot(token) : null
 
@@ -293,8 +301,49 @@ if (bot) {
       }
     }
 
-    // Parse teks kajian
-    const result = parseMessage(ctx.message.text)
+    // ⚡ AGGREGATOR INJECTION: Kumpulkan dan satukan text burst yang terpecah oleh Telegram 4096-char limit!
+    let rawTextToParse = ctx.message.text
+    const DEBOUNCE_MS = 1500
+
+    const existingBuffer = userMessageBuffers.get(userId)
+    if (existingBuffer) {
+      // 💡 INI ADALAH PESAN LANJUTAN (Part 2, Part 3, dst):
+      // Tempelkan ke daftar, reset timernya, lalu tutup request ini instan untuk menghindari duplikasi!
+      existingBuffer.textParts.push(ctx.message.text)
+      
+      if (existingBuffer.timer) clearTimeout(existingBuffer.timer)
+      
+      existingBuffer.timer = setTimeout(() => {
+        const merged = existingBuffer.textParts.join('\n')
+        userMessageBuffers.delete(userId)
+        if (existingBuffer.resolver) existingBuffer.resolver(merged)
+      }, DEBOUNCE_MS)
+      
+      return
+    }
+
+    // 💡 INI ADALAH PESAN PERTAMA (Part 1):
+    // Inisialisasi slot antrian, pasang timer, dan gantung eksekusi request ini sampai timer hening berakhir!
+    const mergedText = await new Promise<string>((resolve) => {
+      const newBuffer: MessageBuffer = {
+        textParts: [ctx.message.text],
+        timer: null,
+        resolver: resolve
+      }
+      
+      newBuffer.timer = setTimeout(() => {
+        const merged = newBuffer.textParts.join('\n')
+        userMessageBuffers.delete(userId)
+        resolve(merged)
+      }, DEBOUNCE_MS)
+      
+      userMessageBuffers.set(userId, newBuffer)
+    })
+
+    rawTextToParse = mergedText
+
+    // Parse teks kajian (SEKARANG SUDAH DIJAMIN UTUH, TERSAMBUNG & TIDAK ADA BLOK TERBELAH!)
+    const result = parseMessage(rawTextToParse)
 
     if (!result.success || result.kajian_list.length === 0) {
       await ctx.reply(
