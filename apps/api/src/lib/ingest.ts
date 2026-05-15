@@ -57,6 +57,7 @@ export async function safeIngestKajian(
   const toInsert: Partial<Kajian>[] = []
   let skippedCount = 0
   let updatedCount = 0
+  let insertIndex = 0 // Digunakan untuk mensimulasikan jeda waktu
   const finalSaved: Kajian[] = []
 
   // 3. Loop Rekonsiliasi & Resolusi Konflik secara ksatria!
@@ -92,6 +93,9 @@ export async function safeIngestKajian(
       toInsert.push({
         ...insertPayload,
         is_published: forcePublished,
+        // 🔥 STAGGERING HACK: Kurangi 1 detik per elemen agar urutan Sesi 1, 2, 3 tetap terjaga murni
+        // saat di-query dari frontend menggunakan ORDER BY created_at DESC!
+        created_at: new Date(Date.now() - (insertIndex++) * 1000).toISOString()
       })
     }
   }

@@ -147,6 +147,26 @@ export function groupKajiansByLocation(list: Kajian[]): Kajian[][] {
       result.push([k])
     }
   }
+  // Urutkan setiap grup secara internal berdasarkan waktu mulai (HH:MM) agar Sesi 1 selalu tampil duluan
+  // Sangat berguna untuk menormalkan data legacy yang masuk bersamaan dengan created_at identik
+  for (const group of result) {
+    if (group.length > 1) {
+      group.sort((a, b) => {
+        // Coba temukan format jam HH:MM atau HH.MM
+        const timeA = a.waktu_mulai.match(/(\d{1,2})[:.](\d{2})/);
+        const timeB = b.waktu_mulai.match(/(\d{1,2})[:.](\d{2})/);
+        
+        if (timeA && timeB) {
+          const minA = parseInt(timeA[1] || '0') * 60 + parseInt(timeA[2] || '0');
+          const minB = parseInt(timeB[1] || '0') * 60 + parseInt(timeB[2] || '0');
+          return minA - minB; // Ascending time
+        }
+        
+        // Fallback: biarkan urutan apa adanya (biasanya sudah tersortir dari DB jika created_at tidak identik)
+        return 0;
+      });
+    }
+  }
 
   return result
 }
