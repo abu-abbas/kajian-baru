@@ -36,9 +36,12 @@ export function KajianManualForm() {
   // 🧼 Sanitasi data kotor/warisan masa lalu (Legacy Data Sanitizer)
   const cleanLegacy = (str: string | null | undefined, p: string) => {
     if (!str) return ''
-    return str
+    const cleanStr = str
+      .replace(/[\u200b-\u200d\ufeff\ufe00-\ufe0f]/g, '') // Hancurkan spasi hantu & sisa emoji!
+      .trim()
+    return cleanStr
       .replace(/^(?:📚|🎙️|🎙|🕰️|🕰|🕌|📞|📍|🗺️|⚠️|📣|📢|🚫|💡)\s*/gu, '')
-      .replace(new RegExp(`^(?:${p})[\\s\\w]*[:：\\-–]?\\s*`, 'i'), '')
+      .replace(new RegExp(`^(?:${p})\\s*[:：\\-–]?\\s*`, 'i'), '')
       .trim()
   }
 
@@ -175,6 +178,11 @@ export function KajianManualForm() {
         body: JSON.stringify({
           kajian_list: [{
             ...formData,
+            materi: cleanLegacy(formData.materi, 'Materi|Tema|Judul|Kajian'),
+            pemateri: cleanLegacy(formData.pemateri, 'Pemateri|Penceramah|Narasumber|Bersama|Oleh'),
+            tempat: cleanLegacy(formData.tempat, 'Tempat|Lokasi'),
+            alamat: cleanLegacy(formData.alamat, 'Alamat|Maps'),
+            kota: cleanLegacy(formData.kota, 'Kota'),
             source_text: 'Dibuat manual via Dashboard Admin'
           }]
         })

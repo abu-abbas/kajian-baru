@@ -8,6 +8,7 @@ import {
 import { useEffect, useState } from 'react'
 import { Button } from './ui/button'
 import { supabase } from '../lib/supabase'
+import { cleanVisual, getCategoryGradient, formatDisplayDate, checkSelesaiRedundant } from '../lib/utils'
 
 type KajianDetailDialogProps = {
   isOpen: boolean
@@ -21,27 +22,11 @@ export function KajianDetailDialog({ isOpen, onClose, kajian }: KajianDetailDial
   const [followedKota, setFollowedKota] = useState(false)
   const [toastMsg, setToastMsg] = useState<string | null>(null)
 
-  // 💎 Helper Title Case: Membuat huruf depan setiap kata menjadi kapital secara elegan!
-  const toTitleCase = (str: string): string => {
-    if (!str) return ''
-    return str.split(/\s+/).map(word => {
-      if (!word) return ''
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    }).join(' ')
-  }
 
-  // 🧼 Retroactive Scrubbers: Sapu bersih kotoran data lama demi visual premium
-  const displayMateri = toTitleCase((kajian?.materi ?? '')
-    .replace(/^(?:[Mm]ateri|[Tt]ema|[Jj]udul|[Kk]ajian)\s*[:\-–]?\s*/i, '')
-    .trim())
 
-  const displayPemateri = toTitleCase((kajian?.pemateri ?? '')
-    .replace(/^(?:[Pp]emateri|[Pp]enceramah|[Nn]arasumber|[Bb]ersama|[Oo]leh)\s*[:\-–]?\s*/i, '')
-    .trim())
-
-  const displayTempat = toTitleCase((kajian?.tempat ?? '')
-    .replace(/^(?:[Tt]empat|[Ll]okasi)\s*[:\-–]?\s*/i, '')
-    .trim())
+  const displayMateri = cleanVisual(kajian?.materi, 'Materi|Tema|Judul|Kajian')
+  const displayPemateri = cleanVisual(kajian?.pemateri, 'Pemateri|Penceramah|Narasumber|Bersama|Oleh')
+  const displayTempat = cleanVisual(kajian?.tempat, 'Tempat|Lokasi')
 
   // 🔄 SYNC STATE: Tarik status langganan sesungguhnya dari DB saat dialog terbuka!
   useEffect(() => {
@@ -104,49 +89,16 @@ export function KajianDetailDialog({ isOpen, onClose, kajian }: KajianDetailDial
 
   const hasPoster = !!kajian.poster_url
   
-  const getCategoryGradient = (audience: string, angle: number = 135) => {
-    if (audience === 'AKHWAT') {
-      return `linear-gradient(${angle}deg, #4c0519, #9d174d)` // Deep luxurious rose to pink
-    }
-    if (audience === 'IKHWAN') {
-      return `linear-gradient(${angle}deg, #0f172a, #1e3a8a)` // Deep luxurious navy to royal blue
-    }
-    return `linear-gradient(${angle}deg, #1a4731, #2d7a4f)` // Premium standard emerald (Umum)
-  }
-
   const gradientStyle = hasPoster
     ? {}
     : {
         background: getCategoryGradient(kajian.audience, kajian.gradient_config?.angle),
       }
 
-  const formatDisplayDate = (dateStr: string): string => {
-    if (!dateStr) return ''
-    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-    if (match) {
-      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-      return `${parseInt(match[3] ?? '1', 10)} ${months[parseInt(match[2] ?? '1', 10) - 1]} ${match[1]}`
-    }
-    return dateStr
-  }
+  const displayKontak = cleanVisual(kajian.kontak, 'Info\\s+Panitia\\s+Kajian|Info\\s+Panitia|Info|Kontak|Hubungi|WA|Telp', false)
+  const displayWaktuMulai = cleanVisual(kajian.waktu_mulai, 'Waktu|Jam|Pukul', false)
 
-  const displayKontak = (kajian.kontak ?? '')
-    .replace(/^(?:[Ii]nfo\s+[Pp]anitia\s+[Kk]ajian|[Ii]nfo\s+[Pp]anitia|[Kk]ontak|[Ii]nfo|[Hh]ubungi|[Ww]a|[Tt]elp)\s*[:\-–]?\s*/i, '')
-    .trim()
-
-  const displayWaktuMulai = (kajian.waktu_mulai ?? '')
-    .replace(/^(?:[Ww]aktu|[Jj]am|[Pp]ukul)\s*[:：]?\s*/i, '')
-    .trim()
-
-  const isSelesaiRedundant = 
-    kajian.waktu_selesai?.toLowerCase() === 'selesai' && (
-      displayWaktuMulai.includes('-') || 
-      displayWaktuMulai.includes('–') || 
-      displayWaktuMulai.includes('—') || 
-      displayWaktuMulai.toLowerCase().includes('s/d') || 
-      displayWaktuMulai.toLowerCase().includes('sampai') ||
-      displayWaktuMulai.toLowerCase().includes('selesai')
-    )
+  const isSelesaiRedundant = checkSelesaiRedundant(displayWaktuMulai, kajian.waktu_selesai)
 
   // 🔔 TRIGGER BACKEND: Lakukan Toggle Follow sungguhan di Supabase database via API!
   const handleFollowClick = async (

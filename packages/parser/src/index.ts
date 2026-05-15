@@ -360,7 +360,9 @@ function extractField(text: string, startEmojis: string[], endEmojis: string[]):
 // ---- Tag and Emoji Stripping Utility ----
 
 function stripPrefixTags(str: string, keywordsPattern: string): string {
-  return str
+  // Sapu bersih zero-width spaces (\u200b dll) yang sering ikut ter-copypaste dari WA/Telegram
+  const cleanStr = str.replace(/[\u200b-\u200d\ufeff\ufe00-\ufe0f]/g, '').trim()
+  return cleanStr
     .replace(/^(?:📚|🎙️|🎙|🕰️|🕰|🕌|📞|📍|🗺️|⚠️|📣|📢|🚫|💡)\s*/gu, '')
     .replace(new RegExp(`^(?:${keywordsPattern})[\\s\\w]*[:：\\-–]?\\s*`, 'i'), '')
     .trim()
@@ -374,6 +376,10 @@ function cleanMateri(raw: string): string {
 
 function cleanPemateri(raw: string): string {
   return stripPrefixTags(raw, 'Pemateri|Penceramah|Narasumber|Bersama|Oleh')
+    // Normalisasi suffix (hilangkan tanda minus di sekitar teks tapi pertahankan isinya)
+    .replace(/\s*-\s*(hafizh?ahull[ah]*|hafizhahuma?ull[ah]*|rahimahull[ah]*)\s*-\s*/gi, ' $1 ')
+    .replace(/\s*-\s*(hafizh?ahull[ah]*|hafizhahuma?ull[ah]*|rahimahull[ah]*)\b/gi, ' $1')
+    .replace(/\b(hafizh?ahull[ah]*|hafizhahuma?ull[ah]*|rahimahull[ah]*)\s*-\s*/gi, '$1 ')
     .replace(/\s+/g, ' ')
     .trim()
 }

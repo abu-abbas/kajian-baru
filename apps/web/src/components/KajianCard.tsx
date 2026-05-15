@@ -1,6 +1,7 @@
 import type { Kajian } from '@kajian-baru/types'
 import { Badge } from './ui/badge'
 import { Clock, MapPin, Phone, Calendar, Navigation, Mic } from 'lucide-react'
+import { cleanVisual, getAudienceVariant, formatDisplayDate, checkSelesaiRedundant } from '../lib/utils'
 
 type KajianCardProps = {
   kajian: Kajian
@@ -10,67 +11,13 @@ type KajianCardProps = {
 export function KajianCard({ kajian, onClick }: KajianCardProps) {
   const hasPoster = !!kajian.poster_url
 
-  const getAudienceVariant = (audience: string) => {
-    if (audience === 'AKHWAT') return 'pink'
-    if (audience === 'IKHWAN') return 'blue'
-    return 'success'
-  }
+  const displayMateri = cleanVisual(kajian.materi, 'Materi|Tema|Judul|Kajian')
+  const displayPemateri = cleanVisual(kajian.pemateri, 'Pemateri|Penceramah|Narasumber|Bersama|Oleh')
+  const displayTempat = cleanVisual(kajian.tempat, 'Tempat|Lokasi')
+  const displayKontak = cleanVisual(kajian.kontak, 'Info\\s+Panitia\\s+Kajian|Info\\s+Panitia|Info|Kontak|Hubungi|WA|Telp', false)
+  const displayWaktuMulai = cleanVisual(kajian.waktu_mulai, 'Waktu|Jam|Pukul', false)
 
-  const formatDisplayDate = (dateStr: string): string => {
-    if (!dateStr) return ''
-    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-    if (match) {
-      const months = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember']
-      const year = match[1]
-      const month = months[parseInt(match[2] ?? '1', 10) - 1] ?? 'Januari'
-      const day = parseInt(match[3] ?? '1', 10).toString()
-      return `${day} ${month} ${year}`
-    }
-    return dateStr
-  }
-
-  // 💎 Helper Title Case: Membuat huruf depan setiap kata menjadi kapital secara elegan!
-  const toTitleCase = (str: string): string => {
-    if (!str) return ''
-    // Pisahkan kalimat menjadi kata, jadikan huruf pertama kapital, sisanya biarkan original agar tidak merusak akronim kapital
-    return str.split(/\s+/).map(word => {
-      if (!word) return ''
-      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    }).join(' ')
-  }
-
-  // 🧼 Retroactive Scrubbers: Bersihkan data lama yang tersimpan kotor di database agar visual tetap premium!
-  const displayMateri = toTitleCase((kajian.materi ?? '')
-    .replace(/^(?:[Mm]ateri|[Tt]ema|[Jj]udul|[Kk]ajian)\s*[:\-–]?\s*/i, '')
-    .trim())
-
-  const displayPemateri = toTitleCase((kajian.pemateri ?? '')
-    .replace(/^(?:[Pp]emateri|[Pp]enceramah|[Nn]arasumber|[Bb]ersama|[Oo]leh)\s*[:\-–]?\s*/i, '')
-    .trim())
-
-  const displayTempat = toTitleCase((kajian.tempat ?? '')
-    .replace(/^(?:[Tt]empat|[Ll]okasi)\s*[:\-–]?\s*/i, '')
-    .trim())
-
-  const displayKontak = (kajian.kontak ?? '')
-    .replace(/^(?:[Ii]nfo\s+[Pp]anitia\s+[Kk]ajian|[Ii]nfo\s+[Pp]anitia|[Kk]ontak|[Ii]nfo|[Hh]ubungi|[Ww]a|[Tt]elp)\s*[:\-–]?\s*/i, '')
-    .trim()
-
-  const displayWaktuMulai = (kajian.waktu_mulai ?? '')
-    .replace(/^(?:[Ww]aktu|[Jj]am|[Pp]ukul)\s*[:：]?\s*/i, '')
-    .trim()
-
-  // 🔍 Detektor redundansi pintar: Jangan tampilkan "— Selesai" jika waktu_mulai sudah mengandung rentang waktu (-, s/d, sampai) atau kata selesai!
-  const hasTimeRange = 
-    displayWaktuMulai.includes('-') || 
-    displayWaktuMulai.includes('–') || 
-    displayWaktuMulai.includes('—') || 
-    displayWaktuMulai.toLowerCase().includes('s/d') || 
-    displayWaktuMulai.toLowerCase().includes('sampai') ||
-    displayWaktuMulai.toLowerCase().includes('selesai')
-
-  const isSelesaiRedundant = 
-    kajian.waktu_selesai?.toLowerCase() === 'selesai' && hasTimeRange
+  const isSelesaiRedundant = checkSelesaiRedundant(displayWaktuMulai, kajian.waktu_selesai)
 
   return (
     <div 

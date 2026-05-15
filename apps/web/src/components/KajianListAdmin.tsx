@@ -8,6 +8,7 @@ import {
 
 import { PosterUpload } from './PosterUpload'
 import { supabase } from '../lib/supabase'
+import { cleanVisual, formatDisplayDate } from '../lib/utils'
 
 export function KajianListAdmin() {
   const [kajians, setKajians] = useState<Kajian[]>([])
@@ -74,7 +75,7 @@ export function KajianListAdmin() {
           'Authorization': `Bearer ${token ?? ''}`
         },
         body: JSON.stringify({
-          materi: editMateri.trim(),
+          materi: editMateri.replace(/^(?:[Mm]ateri|[Tt]ema|[Jj]udul|[Kk]ajian)\s*[:\-–]?\s*/i, '').trim(),
           poster_url: editPosterUrl.trim() === '' ? null : editPosterUrl.trim(),
         }),
       })
@@ -131,16 +132,12 @@ export function KajianListAdmin() {
     k.kota.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  // Format pembacaan tanggal ramah di tabel
-  const formatTableDate = (dateStr: string): string => {
-    if (!dateStr) return '-'
-    const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-    if (match) {
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des']
-      return `${parseInt(match[3] ?? '1', 10)} ${months[parseInt(match[2] ?? '1', 10) - 1]} ${match[1]}`
-    }
-    return dateStr
-  }
+
+
+
+
+  const scrubMateri = (val: string) => cleanVisual(val, 'Materi|Tema|Judul|Kajian')
+  const scrubPemateri = (val: string) => cleanVisual(val, 'Pemateri|Penceramah|Narasumber|Bersama|Oleh')
 
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -247,16 +244,16 @@ export function KajianListAdmin() {
                         ) : (
                           /* Display Mode */
                           <h4 className="text-sm font-extrabold text-foreground leading-snug line-clamp-2 hover:text-primary transition-colors">
-                            {kajian.materi}
+                            {scrubMateri(kajian.materi)}
                           </h4>
                         )}
 
                         <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1">
                           <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                            <User className="h-3 w-3" /> {kajian.pemateri}
+                            <User className="h-3 w-3" /> {scrubPemateri(kajian.pemateri)}
                           </span>
                           <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                            <Calendar className="h-3 w-3" /> {formatTableDate(kajian.tanggal_masehi)}
+                            <Calendar className="h-3 w-3" /> {formatDisplayDate(kajian.tanggal_masehi, true)}
                           </span>
                           <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                             <MapPin className="h-3 w-3" /> {kajian.kota}
