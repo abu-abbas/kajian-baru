@@ -95,25 +95,30 @@ export function Home() {
     void loadDeepLinkedKajian()
   }, []) // Efek ini hanya berjalan 1x saat halaman pertama kali dibuka
 
-  // 📡 SUPABASE REALTIME: Dengarkan siaran data kajian masuk baru di latar belakang!
+  // 📡 POLLING FALLBACK: Cek data kajian baru setiap 30 detik (lebih reliable dari WebSocket)
   useEffect(() => {
-    const channel = supabase
-      .channel('realtime-timeline-watcher')
-      .on(
-        'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'kajian' },
-        (payload) => {
-          console.log('🔥 [Realtime] Data Kajian Baru Berhasil Masuk!', payload)
-          setNewKajianCount((prev) => prev + 1)
-        }
-      )
-      .subscribe((status) => {
-        console.log('📡 [Realtime] Status Koneksi WebSocket:', status)
-      })
+    // Simpan timestamp terakhir saat halaman pertama kali dimuat
+    const loadedAt = new Date().toISOString()
+    let latestCheckedAt = loadedAt
 
-    return () => {
-      void supabase.removeChannel(channel)
+    const pollForNewKajian = async () => {
+      try {
+        const { count } = await supabase
+          .from('kajian')
+          .select('*', { count: 'exact', head: true })
+          .gt('created_at', latestCheckedAt)
+
+        if (count && count > 0) {
+          setNewKajianCount(count)
+        }
+      } catch (err) {
+        console.error('[Poll] Gagal mengecek kajian baru:', err)
+      }
     }
+
+    const interval = setInterval(() => void pollForNewKajian(), 30_000)
+
+    return () => clearInterval(interval)
   }, [])
 
   const handleLoadNewTimeline = () => {
