@@ -54,6 +54,7 @@ trigger: always_on
   - Suffix "-hafizhahullah-" dan variasinya harus dipertahankan dan dinormalisasi (buang tanda minus/dash di sekitarnya)
   - Waktu "Ba'da Shalat X" tetap disimpan as-is sebagai string
   - Audience extracted dari tanda kurung di akhir teks kajian
+- **Synchronized Extraction Engine**: Seluruh jalur parsing data masuk (baik dari form Admin Website maupun pesan masuk Bot Telegram) WAJIB memanggil shared library terpusat `@kajian-baru/parser` guna menjamin konsistensi ekstraksi teks absolut!
 
 ## UI Rules
 - UI must follow `shadcn-ui` principles FIRST — always use primitive UI components from `apps/web/src/components/ui/`
@@ -71,6 +72,10 @@ trigger: always_on
 - **Adaptive Scroll-Triggered Clean Header**: Lindungi Navbar utama dari kepadatan padat. Elemen penunjang sekunder (seperti widget pencarian) sebaiknya tersembunyi saat awal muat layar (top = 0), dan baru diluncurkan/dihadirkan ke dalam Navbar dengan transisi indah ketika pengguna melakukan scroll ke bawah (`isScrolled`).
 - **Branding Vector First**: Seluruh icon brand dan favicon WAJIB berbasis vector murni (`favicon.svg`) dan dipetakan ke icon PWA PNG 192x192 / 512x512 yang 100% simetris & transparan tanpa background samping kotak padat.
 - **Command Spotlight Experience**: Pencarian global harus mengadopsi gaya MacOS Spotlight (dialog melayang tengah-atas dengan backdrop heavy blur, shortcut Meta+K, listener otomatis `Escape` key untuk tutup instan, dan auto-focus seketika saat terbuka).
+- **Unified Telegram Visual Fidelity**: Desain visual format preview di Telegram Bot (`bot.ts`) WAJIB dirawat secara sinergi mengikuti kaidah keanggunan UI frontend:
+  - Selalu sembunyikan baris field opsional jika bernilai kosong/`-` alih-alih menampilkan tanda strip jelek!
+  - Selalu terapkan konversi tanggal dari format database ISO (`YYYY-MM-DD`) ke format ramah Indonesia (`DD-MM-YYYY`) pada tampilan chat preview!
+  - Untuk pesan masuk bot tanpa tanggal eksplisit, WAJIB gunakan intelligent fallback ke tanggal pesan Telegram tersebut dikirimkan (WIB context).
 
 ## What NOT to do
 - Jangan hardcode API keys — selalu dari environment variables
