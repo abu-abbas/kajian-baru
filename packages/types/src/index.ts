@@ -5,7 +5,7 @@
 /**
  * Audience target untuk kajian
  */
-export type Audience = 'UMUM' | 'IKHWAN' | 'AKHWAT'
+export type Audience = 'UMUM' | 'IKHWAN' | 'AKHWAT' | 'ANAK'
 
 /**
  * Konfigurasi gradient untuk KajianCard tanpa poster
@@ -38,6 +38,8 @@ export type Kajian = {
   source_text: string
   himbauan?: string
   kontributor?: string
+  htm?: string
+  registrasi?: string
   is_cancelled: boolean
   is_published: boolean
   created_at?: string

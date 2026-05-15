@@ -10,10 +10,10 @@ import { supabase } from './supabase'
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/')
-  
+
   const rawData = window.atob(base64)
   const outputArray = new Uint8Array(rawData.length)
-  
+
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i)
   }
@@ -66,7 +66,7 @@ export async function subscribeUserToPush(): Promise<{ success: boolean; error?:
     // 3. Panggil Dialog Izin Browser
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') {
-      return { success: false, error: 'Izin notifikasi diblokir. Mohon aktifkan manual di pengaturan gembok alamat browser bos.' }
+      return { success: false, error: 'Izin notifikasi diblokir. Mohon aktifkan manual di pengaturan gembok alamat browser.' }
     }
 
     // 4. Tarik Kunci VAPID Publik dari Server Backend kita (Dengan Proteksi JWT)
@@ -74,7 +74,7 @@ export async function subscribeUserToPush(): Promise<{ success: boolean; error?:
       headers: { 'Authorization': `Bearer ${token}` }
     })
     const keyData = await keyResponse.json()
-    
+
     if (!keyResponse.ok || !keyData.success || !keyData.data?.publicKey) {
       return { success: false, error: 'Gagal menyambung ke server notifikasi.' }
     }
@@ -98,7 +98,7 @@ export async function subscribeUserToPush(): Promise<{ success: boolean; error?:
     })
 
     const syncResult = await syncResponse.json()
-    
+
     if (syncResponse.ok && syncResult.success) {
       console.log('🎉 [Push] Browser Berhasil Terdaftar ke Database!')
       return { success: true }
@@ -108,9 +108,9 @@ export async function subscribeUserToPush(): Promise<{ success: boolean; error?:
 
   } catch (error) {
     console.error('🚨 [Push] Kegagalan rantai subscription:', error)
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Terjadi gangguan tak terduga' 
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Terjadi gangguan tak terduga'
     }
   }
 }
@@ -151,11 +151,11 @@ export async function unsubscribeUserFromPush(): Promise<{ success: boolean }> {
  */
 export async function getPushSubscriptionStatus(): Promise<boolean> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
-  
+
   try {
     const registration = await navigator.serviceWorker.getRegistration()
     if (!registration) return false
-    
+
     const subscription = await registration.pushManager.getSubscription()
     return !!subscription
   } catch {

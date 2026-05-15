@@ -264,28 +264,26 @@ function splitIntoBlocks(text: string): string[] {
   }
 
   // ---- 🧠 ADVANCED: INTERNAL SUB-SESSION EXPANDER ----
-  // Membelah otomatis blok yang mengandung "SESI 1" dan "SESI 2" menjadi dua entry virtual!
+  // Membelah otomatis blok yang mengandung multi-sesi (1, 2, 3, dst) menjadi entry virtual independen!
   const expandedBlocks: string[] = []
 
   for (const block of rawBlocks) {
-    const upperBlock = block.toUpperCase()
-    
-    const hasSesi1 = upperBlock.includes('SESI 1')
-    const hasSesi2 = upperBlock.includes('SESI 2')
+    const sesiRegex = /(?:-?\s*)SESI\s*\d+/gi
+    const matches = [...block.matchAll(sesiRegex)]
 
-    if (hasSesi1 && hasSesi2) {
-      const sesi1Idx = upperBlock.indexOf('SESI 1')
-      const sesi2Idx = upperBlock.indexOf('SESI 2')
+    if (matches.length > 1) {
+      // Ambil bagian atas yang memuat nama masjid, alamat, gmaps sebelum sesi pertama dimulai
+      const firstMatchIndex = matches[0]?.index ?? 0
+      const commonHeader = block.slice(0, firstMatchIndex).trim()
       
-      const commonHeader = block.slice(0, sesi1Idx).trim()
-      const sesi1Content = block.slice(sesi1Idx, sesi2Idx).trim()
-      const sesi2Content = block.slice(sesi2Idx).trim()
-
-      // Bentuk dua blok kajian utuh yang mewarisi info lokasi & gmaps yang sama!
-      const block1 = `${commonHeader}\n${sesi1Content}`
-      const block2 = `${commonHeader}\n${sesi2Content}`
-      
-      expandedBlocks.push(block1, block2)
+      for (let i = 0; i < matches.length; i++) {
+        const startIdx = matches[i]?.index ?? 0
+        const endIdx = matches[i+1] ? matches[i+1]?.index : block.length
+        const sesiContent = block.slice(startIdx, endIdx).trim()
+        
+        // Bentuk blok kajian utuh yang mewarisi info lokasi & gmaps yang sama!
+        expandedBlocks.push(`${commonHeader}\n${sesiContent}`)
+      }
     } else {
       expandedBlocks.push(block)
     }
@@ -297,8 +295,8 @@ function splitIntoBlocks(text: string): string[] {
 // ---- Per-block parsing ----
 
 function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _index: number): Kajian {
-  // 🛑 Cek Pembatalan / Libur
-  const isLibur = block.toUpperCase().includes('KAJIAN DILIBURKAN') || block.toUpperCase().includes('DILIBURKAN')
+  // 🛑 Cek Pembatalan / Libur (Diliburkan / Dibatalkan)
+  const isLibur = block.toUpperCase().includes('DILIBURKAN') || block.toUpperCase().includes('DIBATALKAN')
 
   const lines = block.split('\n').map((l) => l.trim())
 
@@ -310,6 +308,8 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
   let alamatStandalone = ''
   let mapsStandalone = ''
   let himbauanRaw = ''
+  let htmRaw = ''
+  let registrasiRaw = ''
 
   let lastField = ''
 
@@ -329,8 +329,10 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
     const isWaktu = line.includes('🕰️') || line.includes('🕰') || line.match(/^(?:》|>\s*)?(?:Waktu|Jam|Pukul)[\s\w]*[:：\-–]/i)
     const isTempat = line.includes('🕌') || line.includes('🏡') || line.includes('🏢') || line.includes('🏛️') || line.match(/^(?:》|>\s*)?(?:Tempat|Lokasi)[\s\w]*[:：\-–]/i)
     const isAlamat = line.includes('📍') || line.includes('🗺️') || line.includes('🌏') || line.match(/^(?:》|>\s*)?(?:Alamat|Maps|Google Maps|G-maps)[\s\w]*[:：\-–]/i)
-    const isKontak = line.includes('📞') || line.match(/^(?:》|>\s*)?(?:Info|Kontak|Hubungi|WA|Telp|CP|Registrasi)[\s\w]*[:：\-–]/i)
+    const isKontak = line.includes('📞') || line.match(/^(?:》|>\s*)?(?:Info|Kontak|Hubungi|WA|Telp|CP)[\s\w]*[:：\-–]/i)
     const isHimbauan = line.includes('⚠️') || line.includes('📣') || line.includes('📢') || line.includes('🚫') || line.includes('💡') || line.match(/^(?:》|>\s*)?(?:Himbauan|Catatan|NB|Perhatian)[\s\w]*[:：\-–]/i)
+    const isHtm = line.match(/^(?:》|>\s*)?(?:HTM|Biaya|Tiket|Infaq)[\s\w]*[:：\-–]/i)
+    const isRegistrasi = line.match(/^(?:》|>\s*)?(?:Registrasi|Daftar|Pendaftaran|Link)[\s\w]*[:：\-–]/i)
 
     if (isMateri) {
       materiRaw = line
@@ -359,6 +361,12 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
     } else if (isHimbauan) {
       himbauanRaw = line
       lastField = 'himbauan'
+    } else if (isHtm) {
+      htmRaw = line
+      lastField = 'htm'
+    } else if (isRegistrasi) {
+      registrasiRaw = line
+      lastField = 'registrasi'
     } else {
       // Lanjutan baris (Continuation Falling back)
       if (lastField === 'materi') materiRaw += '\n' + line
@@ -368,6 +376,8 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
       else if (lastField === 'alamat') alamatStandalone += '\n' + line
       else if (lastField === 'kontak') kontakRaw += '\n' + line
       else if (lastField === 'himbauan') himbauanRaw += '\n' + line
+      else if (lastField === 'htm') htmRaw += '\n' + line
+      else if (lastField === 'registrasi') registrasiRaw += '\n' + line
       else {
         // Deteksi audiens melayang di bawah blok kontak (dalam kurung)
         if (line.match(/^\([^)]+\)$/)) {
@@ -420,15 +430,18 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
 
   // Pencucian Himbauan Premium
   let finalHimbauan = himbauanRaw
-    .replace(/^(?:Himbauan|Catatan|NB|Perhatian)\s*[:：\-–]?\s*/i, '')
+    .replace(/^(?:》|>\s*)?(?:Himbauan|Catatan|NB|Perhatian)\s*[:：\-–]?\s*/i, '')
     .replace(/(?:⚠️|📣|📢|🚫|💡)\s*/g, '')
     .trim()
+
+  const finalHtm = htmRaw.replace(/^(?:》|>\s*)?(?:HTM|Biaya|Tiket|Infaq)\s*[:：\-–]?\s*/i, '').trim()
+  const finalRegistrasi = registrasiRaw.replace(/^(?:》|>\s*)?(?:Registrasi|Daftar|Pendaftaran|Link)\s*[:：\-–]?\s*/i, '').trim()
 
   if (!finalHimbauan) {
     finalHimbauan = extractHimbauan(block)
   }
 
-  return {
+  const result: Kajian = {
     kota: currentRegion,
     tanggal_masehi: header.tanggal_masehi,
     tanggal_hijriyah: header.tanggal_hijriyah,
@@ -449,6 +462,11 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
     is_cancelled: isLibur, // 🔥 Membawa status pembatalan secara sah!
     is_published: true,   // Default published true (akan di-override API bila perlu, misal bot)
   }
+
+  if (finalHtm) result.htm = finalHtm
+  if (finalRegistrasi) result.registrasi = finalRegistrasi
+
+  return result
 }
 
 // ---- Field extraction with emoji anchors ----
@@ -513,9 +531,14 @@ function cleanPemateri(raw: string): string {
 // ---- Waktu parsing ----
 
 function parseWaktu(raw: string): { mulai: string; selesai: string } {
+  // Buang label audiens yang sering menempel di akhir waktu seperti (kajian anak), (khusus akhwat), dll
+  let baseRaw = raw.replace(/\((?:kajian anak|khusus akhwat|umum|ikhwan|akhwat|muslimah.*)\)/i, '').trim()
+
   // Bersihkan kata pengantar & normalisasi SEMUA jenis tanda pisah ke format standar 's/d'
-  let cleaned = stripPrefixTags(raw, 'Waktu|Jam|Pukul')
-    .replace(/\s*([–—]|\-|s\/d)\s*/gi, ' s/d ') // Mengamankan en-dash, em-dash, dan hyphen
+  let cleaned = stripPrefixTags(baseRaw, 'Waktu|Jam|Pukul')
+    .replace(/\s*(?:[–—]|\-|s\/d)\s*/gi, ' s/d ') // Mengamankan en-dash, em-dash, dan hyphen
+    .replace(/(?:\s*s\/d\s*)+/gi, ' s/d ') // Mencegah duplikasi s/d ganda
+    .replace(/\s*s\/d\s*$/i, '') // Hapus s/d gantung di ujung teks jika ada
     .trim()
 
   if (!cleaned) return { mulai: '', selesai: 'Selesai' }
@@ -641,6 +664,10 @@ function parseKontak(raw: string): { kontak: string } {
 
 function extractAudience(text: string): Audience {
   const raw = text.toUpperCase()
+
+  // 🔥 DETEKSI KAJIAN ANAK
+  const isAnak = raw.includes('KAJIAN ANAK') || raw.includes('ANAK-ANAK') || raw.includes('ANAK ANAK')
+  if (isAnak) return 'ANAK'
 
   // 🔥 DETEKSI EMOJI GENDER UNICODE (🚻, 🚹, 🚺)
   const hasAkhwatEmoji = text.includes('🚺')

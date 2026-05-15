@@ -61,10 +61,18 @@ export const cleanVisual = (val: string | null | undefined, pattern: string, sho
 }
 
 // 💎 UI Styling & Branding Helpers
-export const getAudienceVariant = (audience: string): 'pink' | 'blue' | 'success' => {
+export const getAudienceVariant = (audience: string): 'pink' | 'blue' | 'success' | 'amber' => {
   if (audience === 'AKHWAT') return 'pink'
   if (audience === 'IKHWAN') return 'blue'
+  if (audience === 'ANAK') return 'amber'
   return 'success'
+}
+
+export const getAudienceTextColor = (audience: string | null | undefined): string => {
+  if (audience === 'AKHWAT') return 'text-rose-100'
+  if (audience === 'IKHWAN') return 'text-blue-100'
+  if (audience === 'ANAK') return 'text-amber-100'
+  return 'text-emerald-50'
 }
 
 export const getCategoryGradient = (audience: string | null | undefined, angle = 135): string => {
@@ -73,6 +81,9 @@ export const getCategoryGradient = (audience: string | null | undefined, angle =
   }
   if (audience === 'IKHWAN') {
     return `linear-gradient(${angle}deg, #0f172a, #1e3a8a)` // Deep luxurious navy to royal blue
+  }
+  if (audience === 'ANAK') {
+    return `linear-gradient(${angle}deg, #78350f, #d97706)` // Fun luxurious dark amber to gold
   }
   return `linear-gradient(${angle}deg, #1a4731, #2d7a4f)` // Premium standard emerald (Umum)
 }

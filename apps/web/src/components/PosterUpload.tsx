@@ -24,7 +24,7 @@ export function PosterUpload({ onUploadSuccess, currentUrl }: PosterUploadProps)
     // 📏 Limit Validasi Sisi Klien (Maks 1MB)
     if (file.size > 1024 * 1024) {
       setIsError(true)
-      setStatusMessage('Ukuran file terlalu jumbo! Maksimal 1 MB saja bos.')
+      setStatusMessage('Ukuran file terlalu jumbo! Maksimal 1 MB.')
       return
     }
 
@@ -46,7 +46,7 @@ export function PosterUpload({ onUploadSuccess, currentUrl }: PosterUploadProps)
         .replace(/\.[^/.]+$/, "")
         .replace(/[^a-zA-Z0-9]/g, '_')
         .substring(0, 20)
-      
+
       const fileName = `kajian-${cleanName}-${Date.now()}.${fileExt}`
       const filePath = `public/${fileName}`
 
@@ -89,7 +89,7 @@ export function PosterUpload({ onUploadSuccess, currentUrl }: PosterUploadProps)
 
       setIsError(false)
       setStatusMessage('Upload Berhasil! Memasang URL...')
-      
+
       // Kirim URL sukses ke parent component
       onUploadSuccess(publicUrl)
 
@@ -99,9 +99,9 @@ export function PosterUpload({ onUploadSuccess, currentUrl }: PosterUploadProps)
       console.error('Supabase Upload Error:', err)
       setIsError(true)
       const errMsg = err instanceof Error ? err.message : 'Kesalahan teknis storage'
-      
+
       if (errMsg.includes('violates row level security')) {
-        setStatusMessage('Gagal! Bos sepertinya belum menjalankan mantra SQL di dashboard Supabase.')
+        setStatusMessage('Gagal! Sepertinya Admin belum menjalankan SQL di dashboard Supabase.')
       } else {
         setStatusMessage(`Gagal Upload: ${errMsg}`)
       }
@@ -117,8 +117,8 @@ export function PosterUpload({ onUploadSuccess, currentUrl }: PosterUploadProps)
   return (
     <div className="space-y-3 w-full animate-in fade-in duration-300">
       {/* Hidden HTML File Input */}
-      <input 
-        type="file" 
+      <input
+        type="file"
         ref={fileInputRef}
         onChange={handleFileSelect}
         accept="image/*"
@@ -127,12 +127,12 @@ export function PosterUpload({ onUploadSuccess, currentUrl }: PosterUploadProps)
       />
 
       {/* Interactive Drag-N-Drop / Click Dashboard Area */}
-      <div 
+      <div
         onClick={!uploading ? triggerFileSelect : undefined}
         className={`
           relative border-2 border-dashed rounded-2xl p-5 flex flex-col items-center justify-center text-center transition-all cursor-pointer group
-          ${uploading 
-            ? 'bg-accent/30 border-primary/30 pointer-events-none animate-pulse' 
+          ${uploading
+            ? 'bg-accent/30 border-primary/30 pointer-events-none animate-pulse'
             : isError
             ? 'bg-destructive/5 border-destructive/30 hover:border-destructive/60 hover:bg-destructive/10'
             : 'bg-secondary/40 border-border hover:border-primary/40 hover:bg-secondary/70 shadow-inner'
@@ -142,10 +142,10 @@ export function PosterUpload({ onUploadSuccess, currentUrl }: PosterUploadProps)
         {/* Dynamic Icon Handler */}
         <div className={`
           h-12 w-12 rounded-full flex items-center justify-center mb-3 transition-transform duration-300 group-hover:scale-110 shadow-sm
-          ${uploading 
-            ? 'bg-accent text-primary' 
-            : isError 
-            ? 'bg-destructive/10 text-destructive' 
+          ${uploading
+            ? 'bg-accent text-primary'
+            : isError
+            ? 'bg-destructive/10 text-destructive'
             : 'bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white'
           }
         `}>
@@ -162,7 +162,7 @@ export function PosterUpload({ onUploadSuccess, currentUrl }: PosterUploadProps)
         <h5 className="text-xs font-black text-foreground tracking-tight uppercase mb-1">
           {uploading ? 'Mengunggah File...' : 'Klik untuk Pilih File Gambar'}
         </h5>
-        
+
         <p className="text-[10px] text-muted-foreground font-medium max-w-[240px] leading-relaxed">
           Maksimal ukuran foto adalah <strong>1 MB</strong>. Gunakan format JPG, PNG, atau WEBP untuk efisiensi optimal.
         </p>
@@ -172,8 +172,8 @@ export function PosterUpload({ onUploadSuccess, currentUrl }: PosterUploadProps)
       {statusMessage && (
         <div className={`
           flex items-start gap-2 p-3 rounded-xl border text-xs font-bold animate-in slide-in-from-top-1 duration-300
-          ${isError 
-            ? 'bg-destructive/10 border-destructive/20 text-destructive' 
+          ${isError
+            ? 'bg-destructive/10 border-destructive/20 text-destructive'
             : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400'
           }
         `}>

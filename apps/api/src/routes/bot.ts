@@ -1,4 +1,4 @@
-// REBUILD_TRIGGER: Synchronize with latest parser city-inference intelligence
+// REBUILD_TRIGGER: Sync parser with ANAK audience, HTM, Registrasi fields & UI fixes
 import { Hono } from 'hono'
 import { Bot, InlineKeyboard, webhookCallback } from 'grammy'
 import { supabase } from '../lib/supabase.js'
@@ -305,7 +305,7 @@ if (bot) {
 
     // ⚡ AGGREGATOR INJECTION: Kumpulkan dan satukan text burst yang terpecah oleh Telegram 4096-char limit!
     let rawTextToParse = ctx.message.text
-    const DEBOUNCE_MS = 1500
+    const DEBOUNCE_MS = 3500
 
     const existingBuffer = userMessageBuffers.get(userId)
     if (existingBuffer) {

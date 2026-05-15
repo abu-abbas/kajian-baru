@@ -97,9 +97,14 @@ function cleanPemateri(raw: string): string {
 ### Step 5: Parse waktu
 ```typescript
 function parseWaktu(raw: string): { mulai: string; selesai: string } {
+  // Buang label audiens yang sering menempel di akhir waktu seperti (kajian anak), (khusus akhwat), dll
+  let baseRaw = raw.replace(/\((?:kajian anak|khusus akhwat|umum|ikhwan|akhwat|muslimah.*)\)/i, '').trim()
+
   // Bersihkan kata pengantar & normalisasi SEMUA jenis tanda pisah
-  let cleaned = stripPrefixTags(raw, 'Waktu|Jam|Pukul')
-    .replace(/\s*([–—]|\-|s\/d)\s*/gi, ' s/d ')
+  let cleaned = stripPrefixTags(baseRaw, 'Waktu|Jam|Pukul')
+    .replace(/\s*(?:[–—]|\-|s\/d)\s*/gi, ' s/d ')
+    .replace(/(?:\s*s\/d\s*)+/gi, ' s/d ')
+    .replace(/\s*s\/d\s*$/i, '')
     .trim()
 
   if (!cleaned) return { mulai: '', selesai: 'Selesai' }
@@ -139,6 +144,10 @@ function parseWaktu(raw: string): { mulai: string; selesai: string } {
 ```typescript
 function extractAudience(text: string): Audience {
   const raw = text.toUpperCase()
+
+  // 🧒 DETEKSI KAJIAN ANAK
+  const isAnak = raw.includes('KAJIAN ANAK') || raw.includes('ANAK-ANAK') || raw.includes('ANAK ANAK')
+  if (isAnak) return 'ANAK'
 
   // 🕵️ DETEKSI EMOJI GENDER UNICODE (🚻, 🚹, 🚺)
   const hasAkhwatEmoji = text.includes('🚺')
@@ -191,8 +200,10 @@ function generateGradient(tempat: string): GradientConfig {
 - Kontak format bervariasi: `0813-xxxx`, `+62813xxxx`, ada yang `(Whatsapp Chat Only)`
 - Beberapa kajian tidak punya maps URL sama sekali
 - Nama tempat kadang ada dalam kurung: `Masjid X (Komplek Y)`
-- **Cancellation Flag (`is_cancelled`)**: Jika blok kajian mengandung frasa `DILIBURKAN` secara case-insensitive, parser WAJIB mendeteksinya dan menetapkan flag `is_cancelled: true` alih-alih membuang blok data tersebut!
+- Label target audiens kadang menempel kotor di belakang jam: `selesai (kajian anak)` -> wajib dilucuti di `parseWaktu`!
+- **Cancellation Flag (`is_cancelled`)**: Jika blok kajian mengandung frasa `DILIBURKAN` atau `DIBATALKAN` secara case-insensitive, parser WAJIB mendeteksinya dan menetapkan flag `is_cancelled: true` alih-alih membuang blok data tersebut!
 - **Dynamic Place Splitter**: Di level parser engine (`packages/parser/src/index.ts`), parser harus pintar membagi teks `tempat` dan `alamat` secara dini:
   1. Cek pembatas baris fisik (`\n`) -> Baris pertama Nama Venue, sisanya Alamat.
   2. Cek transisi menuju penanda jalan (`Jl.` / `Jalan`) -> Belah kalimat di titik transisi tersebut!
+- **Field HTM & Registrasi**: Parser harus bisa mengekstrak informasi biaya tiket/infaq (HTM) dan tautan formulir pendaftaran (Registrasi) secara terpisah dari Kontak CP biasa.
 

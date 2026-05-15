@@ -73,7 +73,7 @@ pnpm install
 Salin berkas `.env.example` di root dan di folder `apps/web` dan `apps/api`, lalu sesuaikan kunci Supabase & VAPID keys Anda.
 
 ### 3. Jalankan Mode Developer
-Menjalankan seluruh platform (Web & API) secara bersamaan dengan satu perintah ajaib:
+Menjalankan seluruh platform (Web & API) secara bersamaan dengan satu perintah:
 ```bash
 pnpm dev
 ```

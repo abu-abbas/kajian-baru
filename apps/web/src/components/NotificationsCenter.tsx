@@ -16,12 +16,12 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
   const { user } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [isAllOpen, setIsAllOpen] = useState(false)
-  
+
   const [notifications, setNotifications] = useState<DbNotification[]>([])
   const [allNotifications, setAllNotifications] = useState<DbNotification[]>([])
   const [loadingAll, setLoadingAll] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
-  
+
   const dropdownRef = useRef<HTMLDivElement>(null)
 
   // 📡 1. PULL INITIAL LATEST 5 + COUNT
@@ -37,14 +37,14 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
       const data = await res.json()
       if (data.success && data.data) {
         setNotifications(data.data)
-        
+
         // Hitung unread
         const unreadRes = await supabase
           .from('notifications')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', user.id)
           .eq('read', false)
-        
+
         setUnreadCount(unreadRes.count || 0)
       }
     } catch (err) {
@@ -64,11 +64,11 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
       .channel(`realtime-user-notifications-${user.id}`)
       .on(
         'postgres_changes',
-        { 
-          event: 'INSERT', 
-          schema: 'public', 
-          table: 'notifications', 
-          filter: `user_id=eq.${user.id}` 
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`
         },
         () => {
           // Ada notifikasi baru untuk user ini! Muat ulang & bunyikan lonceng visual
@@ -110,9 +110,9 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
 
       await fetch('/api/push/notifications/mark-read', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}` 
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({ notification_id: notifId })
       })
@@ -125,7 +125,7 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
   const handleItemClick = async (notif: DbNotification) => {
     setIsOpen(false)
     setIsAllOpen(false)
-    
+
     if (!notif.read) {
       void handleMarkRead(notif.id)
     }
@@ -137,7 +137,7 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
           .select('*')
           .eq('id', notif.kajian_id)
           .maybeSingle()
-        
+
         if (data) {
           onSelectKajian(data as Kajian)
         }
@@ -184,7 +184,7 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
             {cleanMateri}
           </p>
         )}
-        
+
         <div className="flex flex-col gap-0.5 pt-0.5 overflow-hidden">
           {cleanPlace && (
             <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground/80 shrink-0 overflow-hidden">
@@ -209,8 +209,8 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`relative p-2.5 rounded-full transition-all duration-300 active:scale-90 ${
-          isOpen 
-            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]' 
+          isOpen
+            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 ring-2 ring-emerald-500/30 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
             : 'hover:bg-accent text-muted-foreground hover:text-emerald-600 dark:hover:text-emerald-300'
         }`}
         aria-label="Pusat Notifikasi"
@@ -220,7 +220,7 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
         ) : (
           <BellOff className="h-[20px] w-[20px] opacity-50" />
         )}
-        
+
         {/* 🔴 Lencana Angka Unread Count */}
         {unreadCount > 0 && (
           <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-black text-white ring-2 ring-background shadow-lg animate-in zoom-in duration-200">
@@ -232,7 +232,7 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
       {/* 🌌 DYNAMIC THEMED DROPDOWN */}
       {isOpen && (
         <div className="absolute right-0 mt-3 w-80 origin-top-right bg-card dark:bg-[#060c08]/95 text-card-foreground backdrop-blur-2xl border border-border dark:border-emerald-500/20 rounded-2xl shadow-2xl dark:shadow-[#020503]/80 z-50 py-2 animate-in slide-in-from-top-3 duration-300 overflow-hidden">
-          
+
           {/* Header Dropdown */}
           <div className="px-4 py-2.5 border-b border-border dark:border-emerald-500/10 flex items-center justify-between">
             <span className="text-xs font-black tracking-wider uppercase text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
@@ -243,7 +243,7 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
               Notifikasi
             </span>
             {unreadCount > 0 && (
-              <button 
+              <button
                 onClick={() => handleMarkRead()}
                 className="text-[10px] font-bold text-emerald-600 dark:text-emerald-500 hover:text-emerald-700 dark:hover:text-emerald-300 flex items-center gap-1 px-1.5 py-0.5 rounded hover:bg-emerald-500/10 transition-colors"
               >
@@ -264,10 +264,10 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
                 <BellOff className="h-8 w-8 mx-auto text-rose-600/80 dark:text-rose-800/60" />
                 <div className="space-y-1">
                   <p className="text-xs font-black uppercase text-rose-600 dark:text-rose-400 tracking-wide">Notifikasi Mati</p>
-                  <p className="text-[10px] text-muted-foreground">Aktifkan tombol lonceng di bawah untuk berlangganan kajian favorit bos.</p>
+                  <p className="text-[10px] text-muted-foreground">Aktifkan tombol lonceng di bawah untuk berlangganan kajian favorit.</p>
                 </div>
-                <Button 
-                  size="sm" 
+                <Button
+                  size="sm"
                   onClick={() => { setIsOpen(false); void onTogglePush() }}
                   className="w-full bg-emerald-600 hover:bg-emerald-500 text-[10px] font-black uppercase tracking-widest rounded-xl h-8 mt-2 text-white"
                 >
@@ -281,7 +281,7 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
               </div>
             ) : (
               notifications.map((notif) => (
-                <div 
+                <div
                   key={notif.id}
                   onClick={() => handleItemClick(notif)}
                   className={`px-4 py-3 hover:bg-accent dark:hover:bg-emerald-500/[0.03] active:bg-accent/80 dark:active:bg-emerald-500/[0.06] transition-all cursor-pointer relative group flex gap-3 ${!notif.read ? 'bg-emerald-500/[0.04] dark:bg-emerald-500/[0.02]' : ''}`}
@@ -289,19 +289,19 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
                   {!notif.read && (
                     <span className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_#10b981]" />
                   )}
-                  
+
                   <div className="flex-1 space-y-0.5 overflow-hidden pl-1">
                     <p className={`text-xs truncate transition-colors group-hover:text-emerald-600 dark:group-hover:text-emerald-300 ${!notif.read ? 'font-black text-foreground' : 'font-semibold text-muted-foreground'}`}>
                       {notif.title.replace(/^📢\s*/, '')}
                     </p>
-                    
+
                     {renderNotificationBody(notif.body, notif.read)}
-                    
+
                     <p className="text-[9px] font-bold text-muted-foreground/60 dark:text-emerald-800 mt-1 flex items-center gap-1 pt-0.5 border-t border-border/20 dark:border-emerald-500/5 w-fit">
                       {new Date(notif.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
                     </p>
                   </div>
-                  
+
                   {notif.kajian_id && (
                     <ArrowUpRight className="h-3 w-3 text-emerald-600 dark:text-emerald-700 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity translate-x-1 group-hover:translate-x-0 align-top mt-1" />
                   )}
@@ -314,7 +314,7 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
           {pushEnabled && user && (
             <div className="px-3 py-2 bg-muted/40 dark:bg-[#040905] border-t border-border dark:border-emerald-500/10 flex items-center justify-between text-[10px] mt-1 font-black uppercase tracking-widest">
               {/* KIRI: Stop Notifikasi */}
-              <button 
+              <button
                 onClick={() => { setIsOpen(false); void onTogglePush() }}
                 className="text-rose-600 dark:text-rose-500 hover:text-rose-500 hover:bg-rose-500/10 px-2.5 py-1.5 rounded-lg transition-colors flex items-center gap-1"
               >
@@ -323,7 +323,7 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
 
               {/* KANAN: Lihat Semua */}
               {notifications.length > 0 && (
-                <button 
+                <button
                   onClick={handleOpenAll}
                   className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-500/10 px-2.5 py-1.5 rounded-lg transition-colors"
                 >
@@ -340,10 +340,10 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
         <div className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-8 animate-in fade-in duration-300">
           {/* Backdrop blur premium */}
           <div className="absolute inset-0 bg-background/80 dark:bg-[#020503]/80 backdrop-blur-md" onClick={() => setIsAllOpen(false)} />
-          
+
           {/* Container Sheet (Diselaraskan dengan KajianDetailDialog, dengan penambahan padding & pembatasan tinggi agar tidak mentok di layar pendek!) */}
           <div className="relative bg-card dark:bg-[#060c08]/95 text-card-foreground border border-border dark:border-emerald-500/20 rounded-t-[36px] sm:rounded-[36px] shadow-2xl w-full sm:max-w-lg flex flex-col max-h-[90vh] sm:max-h-[75vh] overflow-hidden animate-in slide-in-from-bottom-12 duration-400 ease-out">
-            
+
             {/* Header Dialog */}
             <div className="px-6 py-5 border-b border-border dark:border-emerald-500/10 flex items-center justify-between shrink-0 bg-card dark:bg-card/50 backdrop-blur-sm z-10">
               <div className="space-y-0.5">
@@ -351,10 +351,10 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
                   <Bell className="h-4 w-4 text-emerald-600 dark:text-emerald-500 animate-swing origin-top" />
                   Riwayat Notifikasi
                 </h3>
-                <p className="text-[10px] font-medium text-muted-foreground">Menampilkan hingga 50 notifikasi terbaru bos.</p>
+                <p className="text-[10px] font-medium text-muted-foreground">Menampilkan hingga 50 notifikasi terbaru.</p>
               </div>
-              
-              <button 
+
+              <button
                 onClick={() => setIsAllOpen(false)}
                 className="h-8 w-8 rounded-full bg-muted dark:bg-emerald-950/40 border border-border dark:border-emerald-500/10 hover:bg-accent dark:hover:bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-500 active:scale-90 transition-all"
               >
@@ -376,7 +376,7 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
                 </div>
               ) : (
                 allNotifications.map((notif) => (
-                  <div 
+                  <div
                     key={notif.id}
                     onClick={() => handleItemClick(notif)}
                     className={`p-4 hover:bg-accent dark:hover:bg-emerald-500/[0.03] active:bg-accent/80 dark:active:bg-emerald-500/[0.05] transition-all cursor-pointer flex gap-4 group rounded-xl my-0.5 border border-transparent hover:border-border dark:hover:border-emerald-500/10 ${!notif.read ? 'bg-emerald-500/[0.04] dark:bg-emerald-500/[0.02]' : ''}`}
@@ -394,14 +394,14 @@ export function NotificationsCenter({ pushEnabled, onTogglePush, onSelectKajian 
                           {new Date(notif.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                         </span>
                       </div>
-                      
+
                       {renderNotificationBody(notif.body, notif.read)}
                     </div>
                   </div>
                 ))
               )}
             </div>
-            
+
             {/* Action Footer */}
             {allNotifications.some(n => !n.read) && (
               <div className="p-4 border-t border-border dark:border-emerald-500/10 bg-muted/40 dark:bg-[#040905]/50 shrink-0 z-10">

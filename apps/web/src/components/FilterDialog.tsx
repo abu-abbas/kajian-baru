@@ -19,7 +19,8 @@ type FilterDialogProps = {
 const AUDIENCE_LABELS: Record<Audience, string> = {
   UMUM: 'Umum',
   IKHWAN: 'Ikhwan',
-  AKHWAT: 'Akhwat'
+  AKHWAT: 'Akhwat',
+  ANAK: 'Anak-anak'
 }
 
 export function FilterDialog({

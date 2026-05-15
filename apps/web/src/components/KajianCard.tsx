@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { Kajian } from '@kajian-baru/types'
 import { Badge } from './ui/badge'
 import { Clock, MapPin, Phone, Calendar, Navigation, Mic, Ban } from 'lucide-react'
-import { cleanVisual, getAudienceVariant, formatDisplayDate, checkSelesaiRedundant, splitTempatAddress, getCategoryGradient } from '../lib/utils'
+import { cleanVisual, getAudienceVariant, getAudienceTextColor, formatDisplayDate, checkSelesaiRedundant, splitTempatAddress, getCategoryGradient } from '../lib/utils'
 
 type KajianCardProps = {
   // Menerima objek tunggal atau array (Multi-Session) untuk di-grouping ke satu kartu bertab!
@@ -70,14 +70,12 @@ export function KajianCard({ kajian, onClick }: KajianCardProps) {
             <img
               src={activeItem.poster_url!}
               alt={displayMateri}
-              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 animate-in fade-in-30 duration-500"
+              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 animate-in fade-in-30"
             />
           ) : (
             <div style={gradientStyle} className="h-full w-full relative flex items-center justify-center text-white overflow-hidden animate-in fade-in-30 duration-500">
               <div className="absolute inset-0 opacity-25 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
-              <div className={`z-10 bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-xl font-black uppercase tracking-widest text-[8px] shadow-xl shadow-black/5 ${
-                activeItem.audience === 'AKHWAT' ? 'text-rose-100' : activeItem.audience === 'IKHWAN' ? 'text-blue-100' : 'text-emerald-50'
-              }`}>
+              <div className={`z-10 bg-white/10 backdrop-blur-md border border-white/20 px-3 py-1 rounded-xl font-black uppercase tracking-widest text-[8px] shadow-xl shadow-black/5 ${getAudienceTextColor(activeItem.audience)}`}>
                 Sesi Tanpa Poster
               </div>
             </div>

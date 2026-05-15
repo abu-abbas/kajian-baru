@@ -21,7 +21,7 @@ CREATE TABLE kajian (
   alamat TEXT NOT NULL DEFAULT '',
   maps_url TEXT NOT NULL DEFAULT '',
   kontak TEXT NOT NULL DEFAULT '',
-  audience TEXT NOT NULL DEFAULT 'UMUM' CHECK (audience IN ('UMUM', 'IKHWAN', 'AKHWAT')),
+  audience TEXT NOT NULL DEFAULT 'UMUM' CHECK (audience IN ('UMUM', 'IKHWAN', 'AKHWAT', 'ANAK')),
   poster_url TEXT,
   gradient_config JSONB NOT NULL DEFAULT '{"from":"#1a4731","to":"#2d7a4f","angle":135}'::jsonb,
   source_text TEXT NOT NULL DEFAULT '',
@@ -29,6 +29,8 @@ CREATE TABLE kajian (
   kontributor TEXT NOT NULL DEFAULT 'KajianBaru',
   is_cancelled BOOLEAN NOT NULL DEFAULT FALSE,
   is_published BOOLEAN NOT NULL DEFAULT TRUE,
+  htm TEXT,
+  registrasi TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

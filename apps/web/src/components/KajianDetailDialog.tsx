@@ -9,7 +9,7 @@ import {
 import { useEffect, useState } from 'react'
 import { Button } from './ui/button'
 import { supabase } from '../lib/supabase'
-import { cleanVisual, getCategoryGradient, formatDisplayDate, checkSelesaiRedundant, splitTempatAddress } from '../lib/utils'
+import { cleanVisual, getCategoryGradient, formatDisplayDate, checkSelesaiRedundant, splitTempatAddress, getAudienceVariant, getAudienceTextColor } from '../lib/utils'
 
 type KajianDetailDialogProps = {
   isOpen: boolean
@@ -202,14 +202,12 @@ export function KajianDetailDialog({
               <img 
                 src={kajian.poster_url!} 
                 alt={displayMateri} 
-                className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-105 animate-in fade-in-30 duration-500"
+                className="w-full h-full object-cover transition-transform duration-[2000ms] group-hover:scale-105 animate-in fade-in-30"
               />
             ) : (
-              <div style={gradientStyle} className="w-full h-full relative flex items-center justify-center text-white overflow-hidden animate-in fade-in-30 duration-500">
+              <div style={gradientStyle} className="w-full h-full relative flex items-center justify-center text-white overflow-hidden animate-in fade-in-30">
                 <div className="absolute inset-0 opacity-25 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]" />
-                <div className={`z-10 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-black/5 ${
-                  kajian.audience === 'AKHWAT' ? 'text-rose-100' : kajian.audience === 'IKHWAN' ? 'text-blue-100' : 'text-emerald-50'
-                }`}>
+                <div className={`z-10 bg-white/10 backdrop-blur-md border border-white/20 px-4 py-2 rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-xl shadow-black/5 ${getAudienceTextColor(kajian.audience)}`}>
                   KAJIAN ILMIYYAH
                 </div>
               </div>
@@ -229,7 +227,7 @@ export function KajianDetailDialog({
               
               {/* KIRI: Badge Audience, Diliburkan, & Tanggal Masehi */}
               <div className="flex flex-wrap items-center gap-2.5">
-                <Badge variant={kajian.audience === 'AKHWAT' ? 'pink' : kajian.audience === 'IKHWAN' ? 'blue' : 'success'} className="font-extrabold tracking-wider uppercase rounded-lg text-[10px] px-2.5 py-1 shadow-sm">
+                <Badge variant={getAudienceVariant(kajian.audience)} className="font-extrabold tracking-wider uppercase rounded-lg text-[10px] px-2.5 py-1 shadow-sm">
                   {kajian.audience}
                 </Badge>
                 {kajian.is_cancelled && (

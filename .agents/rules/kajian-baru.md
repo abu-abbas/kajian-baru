@@ -36,7 +36,7 @@ trigger: always_on
 - All DB writes go through the API, never directly from frontend
 - Use RLS policies as the security layer — always verify they are active
 - **Database Integrity**: Jangan pernah sengaja mengedit/mengubah data mentah di DB live secara "curang" (skrip migrasi pembersih ad-hoc) hanya untuk mengakomodasi inkonsistensi tampilan visual; semua inkonsistensi data historis di DB harus ditangani dengan ksatria di runtime layer UI menggunakan visual scrubbers yang tangguh!
-- **Centralized Data Ingest Flow**: Seluruh jalur masuk data baru (dari bot telegram maupun admin panel bulk) WAJIB dilarikan ke API Ingest Engine (`apps/api/src/lib/ingest.ts`). JANGAN PERNAH memanggil Supabase `.insert()` mentahan di route endpoint! Pintu gerbang `safeIngestKajian` memikul tanggung jawab sakral mencegah data duplikat dan secara cerdas memperbarui flag `is_cancelled: true` jika data kajian lama disubmit ulang dengan status Diliburkan!
+- **Centralized Data Ingest Flow**: Seluruh jalur masuk data baru (dari bot telegram maupun admin panel bulk) WAJIB dilarikan ke API Ingest Engine (`apps/api/src/lib/ingest.ts`). JANGAN PERNAH memanggil Supabase `.insert()` mentahan di route endpoint! Pintu gerbang `safeIngestKajian` memikul tanggung jawab sakral mencegah data duplikat dan secara cerdas memperbarui flag `is_cancelled: true` jika data kajian lama disubmit ulang dengan status Diliburkan atau Dibatalkan!
 - **Unified Composite Follow Keys**: Sistem notifikasi langganan push (tabel `user_follows`) WAJIB menggunakan `generateFollowKey()` dari `@kajian-baru/parser` di kedua sisi (Frontend & API). Khusus entitas `MASJID`, kunci follow WAJIB digabungkan dengan data `KOTA` (Composite Key) dan tanda kurung keterangan dilucuti habis! Ini krusial untuk mencegah tabrakan nama masjid antar-kota yang sama, sekaligus menjamin kekebalan mutlak terhadap variasi teks ornamen dalam kurung!
 - **Proactive Scaling Optimization**: Setiap kali membuat/memodifikasi API Endpoint yang memicu pencarian kata parsial liar (`.ilike("%keyword%")`), WAJIB hukumnya memprovisikan indeks **`pg_trgm` GIN** di file `supabase/schema.sql` untuk menjamin performa pencarian tetap kencang di bawah mikrodetik ketika baris data menyentuh ratusan ribu!
 
@@ -52,8 +52,10 @@ trigger: always_on
 - Parser must handle ini dengan teliti:
   - Sapu bersih spasi hantu zero-width (`\u200b` dkk) DAN Variation Selectors (`\ufe00-\ufe0f`) di baris pertama agar filter regex tidak mental!
   - Suffix "-hafizhahullah-" dan variasinya harus dipertahankan dan dinormalisasi (buang tanda minus/dash di sekitarnya)
-  - Waktu "Ba'da Shalat X" tetap disimpan as-is sebagai string
-  - Audience extracted dari tanda kurung di akhir teks kajian
+  - Waktu "Ba'da Shalat X" tetap disimpan as-is sebagai string.
+  - Audience extracted dari tanda kurung di akhir teks kajian. HARUS mendukung tipe audiens `ANAK` secara native.
+  - Waktu mulai dan selesai harus dilucuti dari sisa tag audiens seperti `(kajian anak)` agar bersih saat dirender.
+  - Mampu mendeteksi secara presisi field khusus ekstra seperti `HTM` (Harga Tiket/Infaq) dan `Registrasi` (Link pendaftaran) agar tidak tumpang tindih dengan Kontak CP utama.
 - **Synchronized Extraction Engine**: Seluruh jalur parsing data masuk (baik dari form Admin Website maupun pesan masuk Bot Telegram) WAJIB memanggil shared library terpusat `@kajian-baru/parser` guna menjamin konsistensi ekstraksi teks absolut!
 
 ## UI Rules

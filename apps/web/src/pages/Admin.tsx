@@ -12,7 +12,7 @@ import { Toaster } from '../components/ui/toaster'
 
 export function Admin() {
   const { user, loading, isAdmin, signInWithGoogle, signOut } = useAuth()
-  
+
   type AdminTab = 'parser' | 'manual' | 'daftar' | 'bot-users'
 
   // 🗂️ State Pengontrol Navigasi Tab Panel Admin (Dinamis memuat dari Hash URL)
@@ -71,7 +71,7 @@ export function Admin() {
       <div className="min-h-screen flex items-center justify-center p-4 bg-background relative overflow-hidden">
         {/* Top Glow Decoration */}
         <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-96 h-96 bg-emerald-500/20 rounded-full blur-3xl pointer-events-none" />
-        
+
         <div className="glass max-w-md w-full rounded-3xl p-8 text-center space-y-6 relative z-10 shadow-2xl">
           <div className="h-16 w-16 mx-auto rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
             <Lock className="h-8 w-8" />
@@ -82,7 +82,7 @@ export function Admin() {
               Silakan masuk dengan akun Google terverifikasi untuk mengelola data kajian.
             </p>
           </div>
-          
+
           {/* Tombol Login Utama & Navigasi Pulang */}
           <div className="flex flex-col gap-3">
             <Button
@@ -130,15 +130,15 @@ export function Admin() {
 
           {/* Tombol Pilihan Tindakan */}
           <div className="flex flex-col gap-2.5 pt-2">
-            <Button 
-              variant="outline" 
-              onClick={() => void signOut()} 
+            <Button
+              variant="outline"
+              onClick={() => void signOut()}
               className="font-semibold flex items-center justify-center gap-2 border-border h-11 rounded-xl"
             >
               <LogOut className="h-4 w-4" />
               Keluar (Logout)
             </Button>
-            
+
             <Link to="/" className="w-full">
               <Button
                 variant="ghost"
@@ -160,9 +160,9 @@ export function Admin() {
       {/* Admin Sticky Header */}
       <header className="sticky top-0 z-50 bg-background/50 backdrop-blur-xl border-b border-border/50 transition-colors duration-500">
         <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between relative">
-          
-          {/* KIRI: Label Identitas (Memudar halus untuk memberi ruang navigasi tengah saat scroll) */}
-          <div className={`flex items-center gap-2 sm:gap-3 transition-all duration-500 ${isScrolled ? 'opacity-40 scale-95 hover:opacity-100' : 'opacity-100 scale-100'}`}>
+
+          {/* KIRI: Label Identitas (Menghilang di mobile saat scroll, memudar di desktop) */}
+          <div className={`flex items-center gap-2 sm:gap-3 transition-all duration-500 whitespace-nowrap ${isScrolled ? 'w-0 opacity-0 overflow-hidden sm:w-auto sm:opacity-40 sm:scale-95 sm:hover:opacity-100' : 'opacity-100 scale-100'}`}>
             <div className="h-9 w-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary border border-primary/20 shadow-sm">
               <ShieldCheck className="h-5 w-5" />
             </div>
@@ -175,18 +175,19 @@ export function Admin() {
               </p>
             </div>
           </div>
-          
+
           {/* 🧬 TENGAH (MORPH CENTER NAVIGATION): Turun meluncur saat halaman digulir ke bawah */}
-          <div className={`absolute left-1/2 -translate-x-1/2 flex items-center gap-0.5 bg-secondary/40 border border-border/60 p-1 rounded-xl backdrop-blur-md transition-all duration-500 shadow-sm ${
-            isScrolled 
-              ? 'opacity-100 translate-y-0 pointer-events-auto scale-100' 
-              : 'opacity-0 -translate-y-4 pointer-events-none scale-95'
-          }`}>
+          <div className={`absolute left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 flex items-center justify-center pointer-events-none z-20`}>
+            <div className={`flex items-center gap-0.5 bg-secondary/40 border border-border/60 p-1 rounded-xl backdrop-blur-md transition-all duration-500 shadow-sm pointer-events-auto max-w-full overflow-x-auto custom-scrollbar ${
+              isScrolled
+                ? 'opacity-100 translate-y-0 scale-100'
+                : 'opacity-0 -translate-y-4 scale-95'
+            }`}>
             <button
               onClick={() => setActiveTab('parser')}
               className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-200
-                ${activeTab === 'parser' 
-                  ? 'bg-background text-primary shadow-sm border border-border/50 scale-100' 
+                ${activeTab === 'parser'
+                  ? 'bg-background text-primary shadow-sm border border-border/50 scale-100'
                   : 'text-muted-foreground hover:text-foreground hover:bg-background/30 border border-transparent scale-95'
                 }
               `}
@@ -197,8 +198,8 @@ export function Admin() {
             <button
               onClick={() => setActiveTab('manual')}
               className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-200
-                ${activeTab === 'manual' 
-                  ? 'bg-background text-primary shadow-sm border border-border/50 scale-100' 
+                ${activeTab === 'manual'
+                  ? 'bg-background text-primary shadow-sm border border-border/50 scale-100'
                   : 'text-muted-foreground hover:text-foreground hover:bg-background/30 border border-transparent scale-95'
                 }
               `}
@@ -209,8 +210,8 @@ export function Admin() {
             <button
               onClick={() => setActiveTab('daftar')}
               className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-200
-                ${activeTab === 'daftar' 
-                  ? 'bg-background text-primary shadow-sm border border-border/50 scale-100' 
+                ${activeTab === 'daftar'
+                  ? 'bg-background text-primary shadow-sm border border-border/50 scale-100'
                   : 'text-muted-foreground hover:text-foreground hover:bg-background/30 border border-transparent scale-95'
                 }
               `}
@@ -221,14 +222,15 @@ export function Admin() {
             <button
               onClick={() => setActiveTab('bot-users')}
               className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-200
-                ${activeTab === 'bot-users' 
-                  ? 'bg-background text-primary shadow-sm border border-border/50 scale-100' 
+                ${activeTab === 'bot-users'
+                  ? 'bg-background text-primary shadow-sm border border-border/50 scale-100'
                   : 'text-muted-foreground hover:text-foreground hover:bg-background/30 border border-transparent scale-95'
                 }
               `}
             >
               Users
             </button>
+          </div>
           </div>
 
           {/* KANAN: Navbar Control Panel */}
@@ -243,15 +245,15 @@ export function Admin() {
                 <Home className="h-4 w-4" />
               </Button>
             </Link>
-            
+
             <ThemeToggle />
-            
+
             <div className="w-px h-4 bg-border/50 mx-1" />
 
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="sm"
-              onClick={() => void signOut()} 
+              onClick={() => void signOut()}
               className="text-xs font-semibold hover:bg-destructive/5 hover:text-destructive flex items-center gap-2 border border-transparent hover:border-destructive/10 rounded-xl h-9 px-3"
             >
               <LogOut className="h-3.5 w-3.5" />
@@ -263,14 +265,14 @@ export function Admin() {
 
       {/* Admin Dashboard Content */}
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 pt-6 pb-10 space-y-7 flex flex-col">
-        
+
         {/* 🗂️ Modern Switcher Tab Navigation (Scrollable horizontal di Mobile agar lapang!) */}
         <div className="flex flex-row md:flex-wrap items-center gap-1.5 bg-secondary/40 border border-border/60 p-1.5 rounded-2xl shadow-sm backdrop-blur-md relative z-10 overflow-x-auto max-w-full scrollbar-none w-full md:w-auto md:self-start select-none">
           <button
             onClick={() => setActiveTab('parser')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 shrink-0
-              ${activeTab === 'parser' 
-                ? 'bg-background border border-border/60 text-primary shadow-sm scale-100' 
+              ${activeTab === 'parser'
+                ? 'bg-background border border-border/60 text-primary shadow-sm scale-100'
                 : 'text-muted-foreground hover:text-foreground border border-transparent hover:bg-secondary/40'
               }
             `}
@@ -282,8 +284,8 @@ export function Admin() {
           <button
             onClick={() => setActiveTab('manual')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 shrink-0
-              ${activeTab === 'manual' 
-                ? 'bg-background border border-border/60 text-primary shadow-sm scale-100' 
+              ${activeTab === 'manual'
+                ? 'bg-background border border-border/60 text-primary shadow-sm scale-100'
                 : 'text-muted-foreground hover:text-foreground border border-transparent hover:bg-secondary/40'
               }
             `}
@@ -291,12 +293,12 @@ export function Admin() {
             <PenLine className="h-3.5 w-3.5" />
             <span>Input Manual</span>
           </button>
-          
+
           <button
             onClick={() => setActiveTab('daftar')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 shrink-0
-              ${activeTab === 'daftar' 
-                ? 'bg-background border border-border/60 text-primary shadow-sm scale-100' 
+              ${activeTab === 'daftar'
+                ? 'bg-background border border-border/60 text-primary shadow-sm scale-100'
                 : 'text-muted-foreground hover:text-foreground border border-transparent hover:bg-secondary/40'
               }
             `}
@@ -308,8 +310,8 @@ export function Admin() {
           <button
             onClick={() => setActiveTab('bot-users')}
             className={`flex items-center gap-2 px-4 py-2.5 text-xs font-bold rounded-xl transition-all duration-300 shrink-0
-              ${activeTab === 'bot-users' 
-                ? 'bg-background border border-border/60 text-primary shadow-sm scale-100' 
+              ${activeTab === 'bot-users'
+                ? 'bg-background border border-border/60 text-primary shadow-sm scale-100'
                 : 'text-muted-foreground hover:text-foreground border border-transparent hover:bg-secondary/40'
               }
             `}
@@ -375,13 +377,13 @@ export function Admin() {
             <BotUserList />
           </div>
         )}
-        
+
       </main>
-      
+
       <footer className="py-8 text-center border-t border-border/40 mt-auto text-xs text-muted-foreground">
         Authorized Admin Panel • Secure TLS 1.3
       </footer>
-      
+
       <Toaster />
     </div>
   )

@@ -25,7 +25,7 @@ async function runDiagnosis() {
     // 1. Cari User ID di Auth.Users
     console.log('📡 Mengambil data dari supabase.auth.admin...')
     const { data: usersData, error: authError } = await supabase.auth.admin.listUsers()
-    
+
     if (authError) {
       console.error('❌ Gagal mengakses Auth Admin API:', authError.message)
       return
@@ -35,7 +35,7 @@ async function runDiagnosis() {
 
     if (!matchedUser) {
       console.log(`❌ HASIL: User dengan email "${TARGET_EMAIL}" TIDAK DITEMUKAN di tabel Auth Supabase!`)
-      console.log('💡 Solusi: Apakah bos sudah klik login dengan Google di app?')
+      console.log('💡 Solusi: Apakah sudah klik login dengan Google di app?')
       return
     }
 
@@ -58,8 +58,8 @@ async function runDiagnosis() {
 
     if (!adminData) {
       console.log('❌ HASIL DIAGNOSIS: User ID tersebut TIDAK ADA di tabel "admin_users"!')
-      console.log('💡 INI PENYEBABNYA! Sistem menolak akses karena ID bos belum dimasukkan ke daftar admin resmi.')
-      console.log('🚀 MENJALANKAN AUTO-FIX: Memasukkan ID bos ke tabel admin_users sekarang...')
+      console.log('💡 INI PENYEBABNYA! Sistem menolak akses karena ID belum dimasukkan ke daftar admin resmi.')
+      console.log('🚀 MENJALANKAN AUTO-FIX: Memasukkan ID ke tabel admin_users sekarang...')
 
       const { error: insertError } = await supabase
         .from('admin_users')
@@ -72,8 +72,8 @@ async function runDiagnosis() {
       if (insertError) {
         console.error('❌ Gagal memasukkan data:', insertError.message)
       } else {
-        console.log('✅ BERHASIL! Akun bos sudah dimasukkan ke tabel "admin_users" dengan role "admin".')
-        console.log('👉 Silakan refresh browser bos sekarang, pintu dashboard seharusnya terbuka lebar!')
+        console.log('✅ BERHASIL! Akun sudah dimasukkan ke tabel "admin_users" dengan role "admin".')
+        console.log('👉 Silakan refresh browser sekarang, pintu dashboard seharusnya terbuka lebar!')
       }
     } else {
       console.log('✅ DIAGNOSIS: User ID SUDAH ADA di tabel admin_users!')

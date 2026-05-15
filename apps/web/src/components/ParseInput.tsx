@@ -4,7 +4,6 @@ import { KajianCard } from './KajianCard'
 import { Button } from './ui/button'
 import type { ParseResult, Kajian, ApiResponse } from '@kajian-baru/types'
 import { Sparkles, RefreshCcw, Trash2, Database, AlertTriangle, CheckCircle2, ArrowRight, Image, FileText } from 'lucide-react'
-import { PosterUpload } from './PosterUpload'
 import { supabase } from '../lib/supabase'
 import { useToast } from '../hooks/use-toast'
 
@@ -54,25 +53,6 @@ export function ParseInput() {
     setRawText('')
     setResult(null)
     setSaveSuccess(false)
-  }
-
-  const handleUpdatePoster = (index: number, url: string) => {
-    if (!result) return
-    
-    const updatedList = [...result.kajian_list]
-    const item = updatedList[index]
-    
-    if (item) {
-      updatedList[index] = {
-        ...item,
-        poster_url: url.trim() === '' ? null : url.trim()
-      }
-      
-      setResult({
-        ...result,
-        kajian_list: updatedList
-      })
-    }
   }
 
   const handleSaveToDatabase = async () => {
@@ -281,25 +261,6 @@ Pemateri: Ustadz Yazid bin Abdul Qadir Jawas
                 {result.kajian_list.map((kajian: Kajian, i: number) => (
                   <div key={i} className="space-y-3 animate-in slide-in-from-right-8 duration-500 ease-out shadow-lg bg-card/40 rounded-3xl p-3 border border-border/40" style={{ animationDelay: `${i * 100}ms` }}>
                     <KajianCard kajian={kajian} />
-                                       {/* 📸 Kotak Pintar Pengelola Poster (Direct Upload + Tautan) */}
-                    <div className="bg-secondary/30 border border-border/50 rounded-[24px] p-3.5 space-y-3 transition-all duration-300 hover:bg-secondary/40 hover:border-primary/30">
-                      <PosterUpload 
-                        onUploadSuccess={(url) => handleUpdatePoster(i, url)}
-                        currentUrl={kajian.poster_url ?? ''}
-                      />
-                      
-                      {/* Alternatif Input URL Tipis */}
-                      <div className="relative group">
-                        <input
-                          id={`poster-${i}`}
-                          type="url"
-                          placeholder="Atau tempel link gambar langsung..."
-                          value={kajian.poster_url ?? ''}
-                          onChange={(e) => handleUpdatePoster(i, e.target.value)}
-                          className="w-full h-9 pl-3 pr-3 text-[11px] font-semibold tracking-wide rounded-xl border border-border/70 bg-background/50 focus:outline-none focus:ring-1 focus:ring-primary focus:bg-background transition-all duration-200 placeholder:text-[10px] placeholder:font-medium"
-                        />
-                      </div>
-                    </div>
                   </div>
                 ))}
               </div>
