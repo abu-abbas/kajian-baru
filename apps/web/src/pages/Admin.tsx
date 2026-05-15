@@ -3,8 +3,9 @@ import { useAuth } from '../hooks/use-auth'
 import { ParseInput } from '../components/ParseInput'
 import { KajianManualForm } from '../components/KajianManualForm'
 import { KajianListAdmin } from '../components/KajianListAdmin'
+import { BotUserList } from '../components/BotUserList'
 import { Button } from '../components/ui/button'
-import { LogOut, Lock, AlertTriangle, ShieldCheck, Home, Sparkles, ClipboardList, PenLine, Bot, Archive } from 'lucide-react'
+import { LogOut, Lock, AlertTriangle, ShieldCheck, Home, Sparkles, ClipboardList, PenLine, Bot, Archive, Users } from 'lucide-react'
 import { ThemeToggle } from '../components/ui/theme-toggle'
 import { Link } from 'react-router-dom'
 
@@ -12,7 +13,7 @@ export function Admin() {
   const { user, loading, isAdmin, signInWithGoogle, signOut } = useAuth()
   
   // 🗂️ State Pengontrol Navigasi Tab Panel Admin
-  const [activeTab, setActiveTab] = useState<'parser' | 'manual' | 'daftar'>('parser')
+  const [activeTab, setActiveTab] = useState<'parser' | 'manual' | 'daftar' | 'bot-users'>('parser')
 
   // 🕵️‍♂️ Scroll Sensor untuk Fitur Header Morphing
   const [isScrolled, setIsScrolled] = useState(false)
@@ -191,6 +192,18 @@ export function Admin() {
             >
               Arsip
             </button>
+
+            <button
+              onClick={() => setActiveTab('bot-users')}
+              className={`px-2.5 py-1 text-[10px] font-black uppercase tracking-wider rounded-lg transition-all duration-200
+                ${activeTab === 'bot-users' 
+                  ? 'bg-background text-primary shadow-sm border border-border/50 scale-100' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/30 border border-transparent scale-95'
+                }
+              `}
+            >
+              Users
+            </button>
           </div>
 
           {/* KANAN: Navbar Control Panel */}
@@ -266,6 +279,19 @@ export function Admin() {
             <ClipboardList className="h-3.5 w-3.5" />
             <span>Kelola Arsip Kajian</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('bot-users')}
+            className={`flex items-center gap-2 px-4 py-2 text-xs font-bold rounded-xl transition-all duration-300
+              ${activeTab === 'bot-users' 
+                ? 'bg-background border border-border/60 text-primary shadow-sm scale-100' 
+                : 'text-muted-foreground hover:text-foreground border border-transparent hover:bg-secondary/40'
+              }
+            `}
+          >
+            <Users className="h-3.5 w-3.5" />
+            <span>Pengguna Bot</span>
+          </button>
         </div>
 
         {/* 🚀 Rendering Body Berdasarkan Aktif Tab */}
@@ -308,6 +334,20 @@ export function Admin() {
               </p>
             </div>
             <KajianListAdmin />
+          </div>
+        )}
+
+        {activeTab === 'bot-users' && (
+          <div className="space-y-6 animate-in fade-in duration-500 flex flex-col">
+            <div className="space-y-1 pt-1">
+              <h2 className="text-xl font-extrabold tracking-tight text-foreground flex items-center gap-2">
+                <Users className="h-5 w-5 text-primary shrink-0" /> Pengguna Bot Telegram
+              </h2>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
+                Kelola akses pengguna yang mendaftar melalui bot Telegram. Setujui atau tolak permintaan akses untuk mengontrol siapa saja yang boleh mengirim data kajian via bot.
+              </p>
+            </div>
+            <BotUserList />
           </div>
         )}
         
