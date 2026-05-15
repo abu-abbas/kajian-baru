@@ -10,8 +10,8 @@
 **KajianBaru** adalah platform agregator jadwal kajian ilmiyyah yang dirancang dengan pendekatan *mobile-first* dan mengutamakan kecepatan entri data bagi Admin, serta kenyamanan navigasi premium bagi Pengguna Akhir.
 
 Masalah klasik pengumuman kajian di WhatsApp/Telegram yang terkadang sulit dicari, diselesaikan oleh platform ini melalui:
-1. **Hybrid Line-by-Line Parser**: Mengubah teks acak / copasan pesan kajian grup menjadi data terstruktur dalam milidetik tanpa AI API yang lambat/mahal.
-2. **God-Tier Input Manual Form**: Predictive Asynchronous Auto-Suggest dengan *lazy-loaded cascading autofill* untuk meminimalisir duplikasi data tempat & pemateri secara drastis.
+1. **Deterministic Rules-Based Hybrid Parser**: Mengubah teks acak/copasan pesan grup (WhatsApp/Telegram) menjadi data terstruktur dalam milidetik tanpa API AI mahal. Memiliki kecerdasan menyapu spasi hantu (Zero-Width), membuang Variation Selectors, ekstraksi otomatis label audience, serta sinkronisasi cerdas pendeteksi status kajian Diliburkan!
+2. **Intelligent Input Manual Form**: Predictive Asynchronous Auto-Suggest dengan *lazy-loaded cascading autofill* untuk meminimalisir duplikasi data tempat & pemateri secara drastis.
 3. **Modern Dark Emerald Glassmorphism UI**: Antarmuka super-mewah bernuansa Islami kelas premium yang ramah di mata dan mendukung instalasi instan lewat standar **PWA (Progressive Web App)**.
 
 ---
