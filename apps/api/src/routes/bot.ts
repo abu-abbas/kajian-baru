@@ -39,12 +39,33 @@ function formatKajianPreview(list: Kajian[]): string {
     const k = list[i]
     if (!k) continue
     text += `<b>${String(i + 1)}. ${k.materi || 'Tanpa Judul'}</b>\n`
-    text += `   🎙 ${k.pemateri || '-'}\n`
-    text += `   🕐 ${k.waktu_mulai || '-'} — ${k.waktu_selesai || '-'}\n`
-    text += `   🕌 ${k.tempat || '-'}\n`
-    text += `   📅 ${k.tanggal_masehi || '-'}\n\n`
+    
+    if (k.pemateri && k.pemateri !== '-') {
+      text += `   🎙️ ${k.pemateri}\n`
+    }
+    
+    const wMulai = k.waktu_mulai || ''
+    const wSelesai = k.waktu_selesai || ''
+    if (wMulai || wSelesai) {
+      text += `   🕒 ${wMulai || 'N/A'}${wSelesai ? ` — ${wSelesai}` : ''}\n`
+    }
+    
+    if (k.tempat && k.tempat !== '-') {
+      text += `   🕌 ${k.tempat}\n`
+    }
+    
+    if (k.tanggal_masehi && k.tanggal_masehi !== '-') {
+      // Percantik tampilan ISO YYYY-MM-DD menjadi DD-MM-YYYY di Telegram
+      const parts = k.tanggal_masehi.split('-')
+      const formattedDate = (parts.length === 3 && parts[0] && parts[1] && parts[2])
+        ? `${parts[2]}-${parts[1]}-${parts[0]}`
+        : k.tanggal_masehi
+      text += `   📅 ${formattedDate}\n`
+    }
+    
+    text += `\n`
   }
-  return text
+  return text.trim() + '\n'
 }
 
 // ---- Register bot commands ----
@@ -280,6 +301,20 @@ if (bot) {
         'Ketik /template untuk melihat contoh format yang benar.'
       )
       return
+    }
+
+    // 📅 CERDAS: Jika tanggal masehi kosong, fallback ke tanggal pesan ini dikirim (WIB context)!
+    const msgDate = new Date(ctx.message.date * 1000)
+    // Konversi timezone server ke GMT+7 (WIB) untuk akurasi kalender lokal
+    const wibOffsetMs = 7 * 60 * 60 * 1000
+    const utcTimeMs = msgDate.getTime() + (msgDate.getTimezoneOffset() * 60 * 1000)
+    const jakartaDate = new Date(utcTimeMs + wibOffsetMs)
+    const todayISO = jakartaDate.toISOString().split('T')[0] ?? ''
+
+    for (const kajian of result.kajian_list) {
+      if (!kajian.tanggal_masehi || kajian.tanggal_masehi === '-') {
+        kajian.tanggal_masehi = todayISO
+      }
     }
 
     // Buat token ID unik untuk menampung payload chat ini secara mandiri (anti-overwrite!)
