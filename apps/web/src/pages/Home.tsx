@@ -51,6 +51,9 @@ export function Home() {
   const [newKajianCount, setNewKajianCount] = useState(0)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
 
+  // 🎯 DYNAMIC ANCHOR: Melacak koordinat elemen pencarian utama secara presisi!
+  const heroSearchRef = useRef<HTMLDivElement>(null)
+
   // 🛸 Registrasi Service Worker Global (On Load)
   useEffect(() => {
     void registerServiceWorker()
@@ -193,13 +196,20 @@ export function Home() {
     }
   }
 
-  // Deteksi pergerakan scroll layar untuk iOS Morphing Header
+  // Deteksi pergerakan scroll layar secara DYNAMIC & RESPONSIVE
   useEffect(() => {
     const handleScroll = () => {
-      // Diubah dari >70 ke >350 agar Search Navbar HANYA muncul setelah Search Bar utama di bawah Hero tergulung ke atas!
-      setIsScrolled(window.scrollY > 350)
+      if (!heroSearchRef.current) {
+        setIsScrolled(window.scrollY > 300)
+        return
+      }
+      // Baca koordinat aktual elemen pencarian di bawah hero
+      const rect = heroSearchRef.current.getBoundingClientRect()
+      // Aktifkan Search Navbar hanya jika elemen pencarian utama sudah "tersembunyi" di balik navbar (y +/- 72px)
+      setIsScrolled(rect.bottom < 72)
     }
     window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll() // Cek awal saat mount
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
@@ -485,7 +495,7 @@ export function Home() {
         </div>
 
         {/* 🔎 SPOTLIGHT SEARCH TRIGGER: Standar di bawah hero (Menggulung alami ke atas) */}
-        <div className="py-1 animate-in fade-in duration-500">
+        <div ref={heroSearchRef} className="py-1 animate-in fade-in duration-500">
           <button
             onClick={() => setIsFilterOpen(true)}
             className="w-full h-12 flex items-center justify-between px-4 bg-card/50 dark:bg-[#0e1310]/80 border border-border/80 dark:border-emerald-500/10 hover:border-emerald-500/40 rounded-2xl shadow-sm hover:shadow-md text-muted-foreground hover:text-foreground transition-all duration-300 active:scale-[0.99] group cursor-pointer relative overflow-hidden"
