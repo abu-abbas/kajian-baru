@@ -12,7 +12,13 @@ const app = new Hono()
 // Global middleware
 app.use('*', logger())
 app.use('*', cors({
-  origin: ['http://localhost:5173', 'https://kajianbaru.id'],
+  origin: (origin) => {
+    // Izinkan localhost, domain vercel publik/preview, atau domain utama
+    if (!origin || origin.startsWith('http://localhost') || origin.endsWith('.vercel.app') || origin === 'https://kajianbaru.id') {
+      return origin
+    }
+    return 'https://kajianbaru.id'
+  },
   credentials: true,
 }))
 
