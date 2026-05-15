@@ -6,8 +6,10 @@ import type { ParseResult, Kajian, ApiResponse } from '@kajian-baru/types'
 import { Sparkles, RefreshCcw, Trash2, Database, AlertTriangle, CheckCircle2, ArrowRight, Image, FileText } from 'lucide-react'
 import { PosterUpload } from './PosterUpload'
 import { supabase } from '../lib/supabase'
+import { useToast } from '../hooks/use-toast'
 
 export function ParseInput() {
+  const { toast } = useToast()
   const [rawText, setRawText] = useState('')
   const [result, setResult] = useState<ParseResult | null>(null)
   const [loading, setLoading] = useState(false)
@@ -106,12 +108,26 @@ https://maps.app.goo.gl/[placeholder]
           setResult(null)
           setRawText('')
         }, 2500)
+
+        toast({
+          variant: 'success',
+          title: 'Penyimpanan Berhasil',
+          description: 'Kajian baru telah sukses ditambahkan ke database.'
+        })
       } else {
-        alert(`Gagal Menyimpan: ${resData.error ?? 'Terjadi gangguan internal server API.'}`)
+        toast({
+          variant: 'destructive',
+          title: 'Gagal Menyimpan',
+          description: resData.error ?? 'Terjadi gangguan internal server API.'
+        })
       }
     } catch (err) {
       console.error('Gagal menghubungi API:', err)
-      alert('Koneksi terputus. Gagal menghubungi server API backend.')
+      toast({
+        variant: 'destructive',
+        title: 'Koneksi Terputus',
+        description: 'Gagal menghubungi server API backend.'
+      })
     } finally {
       setSaving(false)
     }

@@ -1,5 +1,12 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+
+// 🔇 GAG CONTROL: Matikan semua console.log jika env VITE_SHOW_CONSOLE_LOG tidak bernilai "true"
+const showConsoleLog = import.meta.env.VITE_SHOW_CONSOLE_LOG === 'true'
+if (!showConsoleLog) {
+  console.log = () => {}
+  console.info = () => {}
+}
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Home } from './pages/Home'
 import { Admin } from './pages/Admin'

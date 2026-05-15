@@ -8,6 +8,7 @@ import { Button } from '../components/ui/button'
 import { LogOut, Lock, AlertTriangle, ShieldCheck, Home, Sparkles, ClipboardList, PenLine, Bot, Archive, Users } from 'lucide-react'
 import { ThemeToggle } from '../components/ui/theme-toggle'
 import { Link } from 'react-router-dom'
+import { Toaster } from '../components/ui/toaster'
 
 export function Admin() {
   const { user, loading, isAdmin, signInWithGoogle, signOut } = useAuth()
@@ -356,6 +357,8 @@ export function Admin() {
       <footer className="py-8 text-center border-t border-border/40 mt-auto text-xs text-muted-foreground">
         Authorized Admin Panel • Secure TLS 1.3
       </footer>
+      
+      <Toaster />
     </div>
   )
 }

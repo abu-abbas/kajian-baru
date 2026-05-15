@@ -9,8 +9,10 @@ import {
 import { PosterUpload } from './PosterUpload'
 import { supabase } from '../lib/supabase'
 import { cleanVisual, formatDisplayDate } from '../lib/utils'
+import { useToast } from '../hooks/use-toast'
 
 export function KajianListAdmin() {
+  const { toast } = useToast()
   const [kajians, setKajians] = useState<Kajian[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
@@ -86,12 +88,25 @@ export function KajianListAdmin() {
         // Update state lokal secara instan tanpa full reload!
         setKajians(prev => prev.map(k => k.id === id ? resData.data! : k))
         setEditingId(null)
+        toast({
+          variant: 'success',
+          title: 'Berhasil Diperbarui',
+          description: 'Poster kajian telah sukses diperbarui.'
+        })
       } else {
-        alert(`Gagal memperbarui: ${resData.error ?? 'Masalah internal API'}`)
+        toast({
+          variant: 'destructive',
+          title: 'Gagal Memperbarui',
+          description: resData.error ?? 'Masalah internal API'
+        })
       }
     } catch (err) {
       console.error('Gagal mengupdate kajian:', err)
-      alert('Terjadi kegagalan koneksi API.')
+      toast({
+        variant: 'destructive',
+        title: 'Kesalahan Sistem',
+        description: 'Terjadi kegagalan koneksi API.'
+      })
     } finally {
       setUpdating(false)
     }
@@ -115,13 +130,26 @@ export function KajianListAdmin() {
         // Hapus dari state lokal seketika!
         setKajians(prev => prev.filter(k => k.id !== id))
         setDeletingId(null)
+        toast({
+          variant: 'success',
+          title: 'Kajian Dihapus',
+          description: 'Kajian telah dihapus dari arsip data.'
+        })
       } else {
         const resData = await response.json() as ApiResponse<null>
-        alert(`Gagal menghapus: ${resData.error ?? 'Izin ditolak backend'}`)
+        toast({
+          variant: 'destructive',
+          title: 'Gagal Menghapus',
+          description: resData.error ?? 'Izin ditolak backend'
+        })
       }
     } catch (err) {
       console.error('Gagal menghapus kajian:', err)
-      alert('Gagal terhubung ke server untuk menghapus.')
+      toast({
+        variant: 'destructive',
+        title: 'Kesalahan Sistem',
+        description: 'Gagal terhubung ke server untuk menghapus.'
+      })
     }
   }
 
