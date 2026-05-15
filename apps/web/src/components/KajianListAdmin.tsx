@@ -10,6 +10,17 @@ import { PosterUpload } from './PosterUpload'
 import { supabase } from '../lib/supabase'
 import { cleanVisual, formatDisplayDate } from '../lib/utils'
 import { useToast } from '../hooks/use-toast'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from './ui/alert-dialog'
 
 export function KajianListAdmin() {
   const { toast } = useToast()
@@ -288,7 +299,6 @@ export function KajianListAdmin() {
   // ⚡ EKSEKUSI MASAL BULK DELETE
   const handleBulkDelete = async () => {
     if (selectedIds.length === 0) return
-    if (!confirm(`PERINGATAN: Hapus permanen ${selectedIds.length} data kajian terpilih sekaligus?`)) return
     
     setBulkActionLoading(true)
     try {
@@ -440,16 +450,45 @@ export function KajianListAdmin() {
               </Button>
             )}
 
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={bulkActionLoading}
-              onClick={() => void handleBulkDelete()}
-              className="h-8 px-4 text-[10px] font-black bg-red-600/90 hover:bg-red-500 text-white rounded-lg flex items-center gap-1.5 shadow-lg shadow-red-950/20"
-            >
-              <Trash2 className="h-3 w-3" />
-              Hapus ({selectedIds.length})
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  disabled={bulkActionLoading}
+                  className="h-8 px-4 text-[10px] font-black bg-red-600/90 hover:bg-red-500 text-white rounded-lg flex items-center gap-1.5 shadow-lg shadow-red-950/20 active:scale-95 transition-transform"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Hapus ({selectedIds.length})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent className="glass max-w-[380px] border-red-500/20">
+                <AlertDialogHeader className="space-y-3 flex flex-col items-center text-center">
+                  <div className="h-12 w-12 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-500 shadow-inner">
+                    <AlertTriangle className="h-6 w-6" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <AlertDialogTitle className="text-center text-base font-black text-foreground">
+                      Konfirmasi Hapus Massal
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="text-center text-[11px] font-medium leading-relaxed">
+                      Apakah Anda yakin ingin menghapus secara permanen <span className="font-black text-foreground underline underline-offset-2 decoration-red-500">{selectedIds.length} data kajian</span> terpilih sekaligus? Tindakan ini bersifat final.
+                    </AlertDialogDescription>
+                  </div>
+                </AlertDialogHeader>
+                <AlertDialogFooter className="mt-3 flex !flex-row gap-3 sm:justify-center">
+                  <AlertDialogCancel className="flex-1 h-9 mt-0 text-[10px] font-black tracking-wider uppercase rounded-xl border-border hover:bg-secondary">
+                    Batal
+                  </AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={() => void handleBulkDelete()}
+                    className="flex-1 h-9 text-[10px] font-black tracking-wider uppercase rounded-xl bg-red-600 hover:bg-red-500 text-white shadow-lg shadow-red-500/20 active:scale-95 transition-transform"
+                  >
+                    Hapus Permanen
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
         </div>
       )}
