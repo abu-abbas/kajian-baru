@@ -4,7 +4,8 @@ import { Badge } from './ui/badge'
 import { 
   X, Calendar, Clock, MapPin, Phone, Compass, 
   Navigation, Share2, BellRing, BellMinus, CheckCircle2,
-  Mic, Building2, Map, Moon, AlertCircle, Ban, Bell, BellOff, Lock, Loader2
+  Mic, Building2, Map, Moon, AlertCircle, Ban, Bell, BellOff, Lock, Loader2,
+  Banknote, FileText
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Button } from './ui/button'
@@ -441,6 +442,37 @@ export function KajianDetailDialog({
                     <div>
                       <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider leading-none mb-1.5">Informasi & Kontak Panitia</p>
                       <p className="font-extrabold text-emerald-700 dark:text-emerald-300 tracking-wide text-xs sm:text-sm whitespace-normal break-words">{displayKontak}</p>
+                    </div>
+                  </div>
+                )}
+
+                {kajian.htm && kajian.htm !== '-' && (
+                  <div className="flex items-start gap-4 text-sm border-t border-border/40 pt-5">
+                    <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                      <Banknote className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider leading-none mb-1.5">HTM / Infaq</p>
+                      <p className="font-extrabold text-foreground tracking-wide text-xs sm:text-sm whitespace-normal break-words">{kajian.htm}</p>
+                    </div>
+                  </div>
+                )}
+
+                {kajian.registrasi && kajian.registrasi !== '-' && (
+                  <div className="flex items-start gap-4 text-sm border-t border-border/40 pt-5">
+                    <div className="h-8 w-8 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0 border border-emerald-500/20 shadow-sm shadow-emerald-500/5">
+                      <FileText className="h-4 w-4" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-[9px] font-black text-muted-foreground uppercase tracking-wider leading-none mb-1.5">Link Pendaftaran / Registrasi</p>
+                      <a 
+                        href={kajian.registrasi}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 font-black text-emerald-700 dark:text-emerald-300 hover:text-emerald-500 transition-colors text-xs sm:text-sm underline underline-offset-4 decoration-emerald-500/30"
+                      >
+                        Buka Formulir Registrasi
+                      </a>
                     </div>
                   </div>
                 )}

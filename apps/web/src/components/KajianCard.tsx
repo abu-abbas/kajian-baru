@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { Kajian } from '@kajian-baru/types'
 import { Badge } from './ui/badge'
-import { Clock, MapPin, Phone, Calendar, Navigation, Mic, Ban } from 'lucide-react'
+import { Clock, MapPin, Phone, Calendar, Navigation, Mic, Ban, Banknote, FileText } from 'lucide-react'
 import { cleanVisual, getAudienceVariant, getAudienceTextColor, formatDisplayDate, checkSelesaiRedundant, splitTempatAddress, getCategoryGradient } from '../lib/utils'
 
 type KajianCardProps = {
@@ -181,6 +181,30 @@ export function KajianCard({ kajian, onClick }: KajianCardProps) {
             <div className="flex items-start gap-3 text-sm">
               <Phone className="h-4 w-4 mt-0.5 text-primary shrink-0" />
               <span className="text-foreground/70 text-xs tracking-wide whitespace-normal break-words">{displayKontak}</span>
+            </div>
+          )}
+
+          {/* HTM */}
+          {activeItem.htm && activeItem.htm !== '-' && (
+            <div className="flex items-start gap-3 text-sm">
+              <Banknote className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+              <span className="text-foreground/80 font-bold text-xs">{activeItem.htm}</span>
+            </div>
+          )}
+
+          {/* Registrasi */}
+          {activeItem.registrasi && activeItem.registrasi !== '-' && (
+            <div className="flex items-start gap-3 text-sm">
+              <FileText className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+              <a 
+                href={activeItem.registrasi} 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-primary hover:underline font-bold text-xs truncate"
+                onClick={(e) => e.stopPropagation()}
+              >
+                Link Registrasi
+              </a>
             </div>
           )}
           
