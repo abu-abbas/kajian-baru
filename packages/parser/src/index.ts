@@ -441,6 +441,16 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
     finalHimbauan = extractHimbauan(block)
   }
 
+  // 🕵️ SMART PER-BLOCK KONTRIBUTOR SENSING:
+  // Cek apakah blok spesifik ini memiliki sumber/kreator tersendiri (berguna untuk mixed batch!)
+  let localKontributor = header.kontributor;
+  const localCreatorMatch = block.match(/(?:Creative\s+by|Creator|Sumber)\s*[:\-–]\s*([^`\n\•\>]+)/i);
+  if (localCreatorMatch && localCreatorMatch[1]) {
+    localKontributor = localCreatorMatch[1].trim().replace(/[\`\*\_]/g, '');
+  } else if (/Jadwal\s+Kajian\s+Kaskus/i.test(block)) {
+    localKontributor = 'Tim Jadwal Kajian Kaskus';
+  }
+
   const result: Kajian = {
     kota: currentRegion,
     tanggal_masehi: header.tanggal_masehi,
@@ -458,7 +468,7 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
     gradient_config,
     source_text: block,
     himbauan: finalHimbauan,
-    kontributor: header.kontributor,
+    kontributor: localKontributor,
     is_cancelled: isLibur, // 🔥 Membawa status pembatalan secara sah!
     is_published: true,   // Default published true (akan di-override API bila perlu, misal bot)
   }
