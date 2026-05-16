@@ -87,6 +87,8 @@ export async function safeIngestKajian(
         }
       } else {
         // Aturan Bisnis B: Sama persis dan tidak ada pembaruan status batal. Skip total!
+        console.warn(`[Ingest] Data Redundan Terdeteksi (Skip): [${incoming.tanggal_masehi}] [${incoming.tempat}] [${incoming.waktu_mulai}] matching ID: ${matched.id}`)
+        console.warn(`[Ingest] Conflict Record Details:`, { incoming, matched })
         skippedCount++
       }
     } else {

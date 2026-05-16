@@ -100,10 +100,7 @@ export function KajianCard({ kajian, onClick }: KajianCardProps) {
               </Badge>
             )}
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] font-bold text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5 text-primary" />
-            <span>{formatDisplayDate(activeItem.tanggal_masehi)}</span>
-          </div>
+
         </div>
 
         {/* 📑 MULTI-SESSION GLASS TABS ROW */}
@@ -147,6 +144,13 @@ export function KajianCard({ kajian, onClick }: KajianCardProps) {
 
         {/* Bottom Info Grid */}
         <div className="grid grid-cols-1 gap-3 pt-2 border-t border-border/50">
+          {/* Date */}
+          <div className="flex items-start gap-3 text-sm">
+            <Calendar className="h-4 w-4 mt-0.5 text-primary shrink-0" />
+            <div className="text-foreground font-bold">
+              {formatDisplayDate(activeItem.tanggal_masehi)}
+            </div>
+          </div>
           {/* Time */}
           <div className="flex items-start gap-3 text-sm">
             <Clock className="h-4 w-4 mt-0.5 text-primary shrink-0" />
