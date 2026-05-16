@@ -1,5 +1,5 @@
-// REBUILD_TRIGGER: fix parser regex (lenient match) & fix broken syntax recovery
 // REBUILD_TRIGGER: smart block reunification (merge fragmented masjid/materi blocks)
+// REBUILD_TRIGGER: fix TS assignment error in reunification logic & finalize parser stability
 import { Hono } from 'hono'
 import { Bot, InlineKeyboard, webhookCallback } from 'grammy'
 import { supabase } from '../lib/supabase.js'
