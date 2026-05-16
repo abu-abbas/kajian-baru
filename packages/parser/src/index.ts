@@ -322,7 +322,12 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
 
     // 🌍 Instant Maps Match: Jika baris murni berisi tautan Google Maps saja
     const mapsUrlMatch = line.match(/^(?:🌏\s*G-maps\s*[:\-–]\s*)?(https?:\/\/(?:maps\.google\.com|goo\.gl|maps\.app\.goo\.gl)\S+)/i)
-    if (mapsUrlMatch && line.repl    // -- Field Detectors (Berbasis Emoji & Kata Kunci Indonesia) --
+    if (mapsUrlMatch && line.replace(mapsUrlMatch[0], '').trim() === '') {
+      mapsStandalone = mapsUrlMatch[1] ?? mapsUrlMatch[0]
+      continue
+    }
+
+    // -- Field Detectors (Berbasis Emoji & Kata Kunci Indonesia) --
     // Perbaikan Regex: Menggunakan [^:：\-–]* agar karakter apapun (termasuk spasi hantu/titik) sebelum separator tetap tertangkap!
     const isMateri = line.includes('📚') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Materi|Tema|Judul|Kajian|Sesi\s+\d)[^:：\-–]*[:：\-–]/i)
     const isPemateri = line.includes('🎙️') || line.includes('🎙') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Pemateri|Penceramah|Narasumber|Bersama|Oleh)[^:：\-–]*[:：\-–]/i)
@@ -332,9 +337,7 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
     const isKontak = line.includes('📞') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Info|Kontak|Hubungi|WA|Telp|CP)[^:：\-–]*[:：\-–]/i)
     const isHimbauan = line.includes('⚠️') || line.includes('📣') || line.includes('📢') || line.includes('🚫') || line.includes('💡') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Himbauan|Catatan|NB|Perhatian)[^:：\-–]*[:：\-–]/i)
     const isHtm = line.match(/^(?:[》>\-•]+[\s]*)?(?:HTM|Biaya|Tiket|Infaq)[^:：\-–]*[:：\-–]/i)
-    const isRegistrasi = line.match(/^(?:[》>\-•]+[\s]*)?(?:Registrasi|Daftar|Pendaftaran|Link)[^:：\-–]*[:：\-–]/i)atatan|NB|Perhatian)[\s\w]*[:：\-–]/i)
-    const isHtm = line.match(/^(?:[》>\-•]+[\s]*)?(?:HTM|Biaya|Tiket|Infaq)[\s\w]*[:：\-–]/i)
-    const isRegistrasi = line.match(/^(?:[》>\-•]+[\s]*)?(?:Registrasi|Daftar|Pendaftaran|Link)[\s\w]*[:：\-–]/i)
+    const isRegistrasi = line.match(/^(?:[》>\-•]+[\s]*)?(?:Registrasi|Daftar|Pendaftaran|Link)[^:：\-–]*[:：\-–]/i)
 
     if (isMateri) {
       materiRaw = line
