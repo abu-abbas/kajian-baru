@@ -617,6 +617,10 @@ export function KajianListAdmin() {
                         <div className="space-y-1 flex-1">
                           {/* Dynamic Status Badges */}
                           <div className="flex flex-wrap gap-1.5 pb-0.5">
+                            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-muted-foreground mr-1.5">
+                              <Calendar className="h-3 w-3 text-primary" />
+                              {formatDisplayDate(kajian.tanggal_masehi, true)}
+                            </span>
                             {kajian.is_cancelled && (
                               <span className="inline-flex items-center rounded-md bg-red-500/15 px-2 py-0.5 text-[9px] font-black tracking-wider text-red-600 dark:text-red-400 uppercase border border-red-500/20 shadow-inner">
                                 <Ban className="mr-1 h-2.5 w-2.5" /> {/batal/i.test(kajian.source_text || kajian.materi || '') ? 'Dibatalkan' : 'Diliburkan'}
@@ -655,9 +659,7 @@ export function KajianListAdmin() {
                                 <User className="h-3 w-3" /> {scrubPemateri(kajian.pemateri)}
                               </span>
                             )}
-                            <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                              <Calendar className="h-3 w-3" /> {formatDisplayDate(kajian.tanggal_masehi, true)}
-                            </span>
+
                             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                               <MapPin className="h-3 w-3" /> {splitTempatAddress(kajian.tempat).cleanTempat} &middot; {kajian.kota}
                             </span>
