@@ -650,9 +650,11 @@ export function KajianListAdmin() {
                           )}
 
                           <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1">
-                            <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                              <User className="h-3 w-3" /> {scrubPemateri(kajian.pemateri)}
-                            </span>
+                            {scrubPemateri(kajian.pemateri).trim() && scrubPemateri(kajian.pemateri).trim() !== '-' && (
+                              <span className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                                <User className="h-3 w-3" /> {scrubPemateri(kajian.pemateri)}
+                              </span>
+                            )}
                             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
                               <Calendar className="h-3 w-3" /> {formatDisplayDate(kajian.tanggal_masehi, true)}
                             </span>
