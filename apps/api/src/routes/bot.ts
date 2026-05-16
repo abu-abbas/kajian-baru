@@ -1,6 +1,5 @@
-// REBUILD_TRIGGER: Per-block source sensing
-// REBUILD_TRIGGER: Sync parser with ANAK audience, HTM, Registrasi fields & UI fixes
 // REBUILD_TRIGGER: fix greedy parsing bug (Tema/Pemateri missing)
+// REBUILD_TRIGGER: debug redundant data (show conflict sample)
 import { Hono } from 'hono'
 import { Bot, InlineKeyboard, webhookCallback } from 'grammy'
 import { supabase } from '../lib/supabase.js'
@@ -249,7 +248,7 @@ if (bot) {
 
       try {
         // 🛡️ JALANKAN DEDUPLIKASI CERDAS & PERTAHANAN SPAM (Set published: false, butuh review admin!)
-        const { saved, skipped, updated } = await safeIngestKajian(kajianList, false)
+        const { saved, skipped, updated, conflictSample } = await safeIngestKajian(kajianList, false)
 
         pendingParseResults.delete(parseId)
 
@@ -264,6 +263,9 @@ if (bot) {
         
         if (saved.length === 0 && updated === 0) {
           statusText += `\n⚠️ Tidak ada data baru yang masuk (100% redundan/duplikat).`
+          if (conflictSample) {
+            statusText += `\n\n💡 <b>Contoh data yang sudah ada di DB:</b>\n<code>${conflictSample}</code>\n\nSilakan cek data tersebut di dashboard admin.`
+          }
         } else {
           statusText += `\n💡 Data tersimpan sebagai Draft. Silakan approve di Website Admin!`
         }

@@ -15,11 +15,13 @@ import { generateFollowKey } from '@kajian-baru/parser'
 export async function safeIngestKajian(
   kajianList: Kajian[], 
   forcePublished = true
-): Promise<{ saved: Kajian[]; skipped: number; updated: number }> {
+): Promise<{ saved: Kajian[]; skipped: number; updated: number; conflictSample?: string }> {
   
   if (!kajianList || kajianList.length === 0) {
     return { saved: [], skipped: 0, updated: 0 }
   }
+
+  let conflictSample = ''
 
   // 1. Cari rentang tanggal yang relevan untuk optimasi load bulk
   const uniqueDates = Array.from(new Set(kajianList.map(k => k.tanggal_masehi).filter(Boolean)))
@@ -87,6 +89,7 @@ export async function safeIngestKajian(
         }
       } else {
         // Aturan Bisnis B: Sama persis dan tidak ada pembaruan status batal. Skip total!
+        if (!conflictSample) conflictSample = `${incoming.tanggal_masehi} | ${incoming.tempat}`
         console.warn(`[Ingest] Data Redundan Terdeteksi (Skip): [${incoming.tanggal_masehi}] [${incoming.tempat}] [${incoming.waktu_mulai}] matching ID: ${matched.id}`)
         console.warn(`[Ingest] Conflict Record Details:`, { incoming, matched })
         skippedCount++
@@ -127,6 +130,7 @@ export async function safeIngestKajian(
   return {
     saved: finalSaved,
     skipped: skippedCount,
-    updated: updatedCount
+    updated: updatedCount,
+    conflictSample
   }
 }
