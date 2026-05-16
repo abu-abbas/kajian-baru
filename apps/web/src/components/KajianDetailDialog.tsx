@@ -246,7 +246,7 @@ export function KajianDetailDialog({
                 {kajian.is_cancelled && (
                   <Badge variant="destructive" className="font-black tracking-wider uppercase border border-red-500/30 animate-pulse text-[9px] px-2 py-1 rounded-lg flex items-center gap-1">
                     <Ban className="h-2.5 w-2.5" />
-                    Diliburkan
+                    {/batal/i.test(kajian.source_text || kajian.materi || '') ? 'Dibatalkan' : 'Diliburkan'}
                   </Badge>
                 )}
                 <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/10 px-3 py-1 rounded-lg flex items-center gap-1.5 shadow-inner">
@@ -293,8 +293,8 @@ export function KajianDetailDialog({
 
             {/* 📖 JUDUL MATERI & TANGGAL HIJRIYAH */}
             <div className="space-y-3.5">
-              <h2 className="text-xl sm:text-2xl font-black tracking-tight text-foreground leading-tight whitespace-normal pr-2">
-                {displayMateri || (kajian.is_cancelled ? '(Materi Diliburkan)' : '')}
+              <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight leading-[1.3] whitespace-normal break-words">
+                {displayMateri || (kajian.is_cancelled ? (/batal/i.test(kajian.source_text || kajian.materi || '') ? '(Kajian Dibatalkan)' : '(Kajian Diliburkan)') : '')}
               </h2>
               
               {kajian.tanggal_hijriyah && (

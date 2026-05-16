@@ -96,7 +96,7 @@ export function KajianCard({ kajian, onClick }: KajianCardProps) {
             {activeItem.is_cancelled && (
               <Badge variant="destructive" className="font-black tracking-wider uppercase border border-red-500/30 animate-pulse flex items-center gap-1">
                 <Ban className="h-2.5 w-2.5" />
-                Diliburkan
+                {/batal/i.test(activeItem.source_text || activeItem.materi || '') ? 'Dibatalkan' : 'Diliburkan'}
               </Badge>
             )}
           </div>
@@ -135,7 +135,7 @@ export function KajianCard({ kajian, onClick }: KajianCardProps) {
         {/* Middle: Title and Speaker */}
         <div className="space-y-3">
           <h3 className="text-base sm:text-lg font-black tracking-tight leading-snug text-foreground transition-colors group-hover:text-primary whitespace-normal break-words">
-            {displayMateri || (activeItem.is_cancelled ? '(Materi Diliburkan)' : '')}
+            {displayMateri || (activeItem.is_cancelled ? (/batal/i.test(activeItem.source_text || activeItem.materi || '') ? '(Kajian Dibatalkan)' : '(Kajian Diliburkan)') : '')}
           </h3>
           {(displayPemateri || !activeItem.is_cancelled) && (
             <div className="inline-flex items-center gap-2 rounded-xl px-3 py-1.5 text-xs font-bold border bg-secondary/50 border-border/60 text-emerald-700 dark:text-emerald-100 shadow-sm">
