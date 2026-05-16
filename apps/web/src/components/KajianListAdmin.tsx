@@ -8,7 +8,7 @@ import {
 
 import { PosterUpload } from './PosterUpload'
 import { supabase } from '../lib/supabase'
-import { cleanVisual, formatDisplayDate } from '../lib/utils'
+import { cleanVisual, formatDisplayDate, splitTempatAddress } from '../lib/utils'
 import { useToast } from '../hooks/use-toast'
 import {
   AlertDialog,
@@ -243,6 +243,25 @@ export function KajianListAdmin() {
     setSelectedIds(prev => 
       prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
     )
+  }
+
+  const toggleSelectBatch = (batchId: string | undefined, visibleKajians: Kajian[]) => {
+    if (!batchId) return
+    const batchIds = visibleKajians.filter(k => k.batch_id === batchId).map(k => k.id!)
+    
+    // Check if ALL items in this batch are already selected
+    const allSelected = batchIds.every(id => selectedIds.includes(id))
+    
+    if (allSelected) {
+      // Unselect this batch
+      setSelectedIds(prev => prev.filter(id => !batchIds.includes(id)))
+    } else {
+      // Select this batch
+      setSelectedIds(prev => {
+        const newIds = new Set([...prev, ...batchIds])
+        return Array.from(newIds)
+      })
+    }
   }
 
   // ⚡ EKSEKUSI MASAL BULK PUBLISH
@@ -554,6 +573,15 @@ export function KajianListAdmin() {
                       onChange={() => toggleSelectOne(kajian.id!)}
                       className="h-4 w-4 rounded-md border-border accent-primary hover:scale-105 transition-transform cursor-pointer mt-1"
                     />
+                    {kajian.batch_id && (
+                      <button
+                        onClick={() => toggleSelectBatch(kajian.batch_id, filteredKajians)}
+                        className="text-[8px] font-black uppercase text-primary/70 hover:text-primary mt-2 select-none"
+                        title="Pilih semua data dari batch ini"
+                      >
+                        Pilih Batch
+                      </button>
+                    )}
                   </div>
 
                   {/* RIGHT: Record Content Box */}
@@ -591,7 +619,7 @@ export function KajianListAdmin() {
                           <div className="flex flex-wrap gap-1.5 pb-0.5">
                             {kajian.is_cancelled && (
                               <span className="inline-flex items-center rounded-md bg-red-500/15 px-2 py-0.5 text-[9px] font-black tracking-wider text-red-600 dark:text-red-400 uppercase border border-red-500/20 shadow-inner">
-                                <Ban className="mr-1 h-2.5 w-2.5" /> Diliburkan
+                                <Ban className="mr-1 h-2.5 w-2.5" /> {/batal/i.test(kajian.source_text || kajian.materi || '') ? 'Dibatalkan' : 'Diliburkan'}
                               </span>
                             )}
                             {!kajian.is_published ? (
@@ -617,7 +645,7 @@ export function KajianListAdmin() {
                             </div>
                           ) : (
                             <h4 className="text-sm font-extrabold text-foreground leading-snug line-clamp-2">
-                              {scrubMateri(kajian.materi)}
+                              {kajian.is_cancelled && !/batal|libur/i.test(kajian.materi) ? (/batal/i.test(kajian.source_text || '') ? '(Kajian Dibatalkan)' : '(Kajian Diliburkan)') : scrubMateri(kajian.materi)}
                             </h4>
                           )}
 
@@ -629,7 +657,7 @@ export function KajianListAdmin() {
                               <Calendar className="h-3 w-3" /> {formatDisplayDate(kajian.tanggal_masehi, true)}
                             </span>
                             <span className="text-[11px] text-muted-foreground flex items-center gap-1">
-                              <MapPin className="h-3 w-3" /> {kajian.kota}
+                              <MapPin className="h-3 w-3" /> {splitTempatAddress(kajian.tempat).cleanTempat} &middot; {kajian.kota}
                             </span>
                           </div>
                         </div>

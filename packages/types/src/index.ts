@@ -42,6 +42,7 @@ export type Kajian = {
   registrasi?: string
   is_cancelled: boolean
   is_published: boolean
+  batch_id?: string
   created_at?: string
   updated_at?: string
 }

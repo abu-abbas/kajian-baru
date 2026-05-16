@@ -31,6 +31,7 @@ CREATE TABLE kajian (
   is_published BOOLEAN NOT NULL DEFAULT TRUE,
   htm TEXT,
   registrasi TEXT,
+  batch_id UUID,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

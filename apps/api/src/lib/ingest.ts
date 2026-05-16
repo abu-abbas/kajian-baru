@@ -59,6 +59,9 @@ export async function safeIngestKajian(
   let updatedCount = 0
   let insertIndex = 0 // Digunakan untuk mensimulasikan jeda waktu
   const finalSaved: Kajian[] = []
+  
+  // Buat satu batch UUID untuk seluruh items baru yang masuk dalam run ini
+  const currentBatchId = crypto.randomUUID()
 
   // 3. Loop Rekonsiliasi & Resolusi Konflik secara ksatria!
   for (const incoming of kajianList) {
@@ -89,10 +92,11 @@ export async function safeIngestKajian(
     } else {
       // ✨ DATA BARU BERSIH!
       // Omit id jika ada (mencegah tabrakan primary key UUID) dan paksa setup status publish!
-      const { id, ...insertPayload } = incoming
+      const { id, batch_id: existingBatch, ...insertPayload } = incoming
       toInsert.push({
         ...insertPayload,
         is_published: forcePublished,
+        batch_id: existingBatch || currentBatchId,
         // 🔥 STAGGERING HACK: Kurangi 1 detik per elemen agar urutan Sesi 1, 2, 3 tetap terjaga murni
         // saat di-query dari frontend menggunakan ORDER BY created_at DESC!
         created_at: new Date(Date.now() - (insertIndex++) * 1000).toISOString()
