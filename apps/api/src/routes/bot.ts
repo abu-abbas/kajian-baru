@@ -1,6 +1,5 @@
-// REBUILD_TRIGGER: fix greedy parsing bug (Tema/Pemateri missing)
-// REBUILD_TRIGGER: revert ingest debug, keep UI date-above-time fix
 // REBUILD_TRIGGER: fix parser regex (lenient match) & fix broken syntax recovery
+// REBUILD_TRIGGER: smart block reunification (merge fragmented masjid/materi blocks)
 import { Hono } from 'hono'
 import { Bot, InlineKeyboard, webhookCallback } from 'grammy'
 import { supabase } from '../lib/supabase.js'

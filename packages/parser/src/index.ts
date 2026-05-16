@@ -127,9 +127,29 @@ export function parseMessage(rawText: string): ParseResult {
     try {
       const kajian = parseBlock(block, header, currentRegion, i)
       
+      // 🛡️ SMART REUNIFICATION: Jika blok saat ini punya materi tapi TIDAK punya nama tempat (masjid),
+      // dan blok sebelumnya cuma berisi nama tempat (Tanpa Judul), maka SATUKAN!
+      const lastKajian = kajianList[kajianList.length - 1]
+      if (lastKajian && kajian.materi && !kajian.tempat && lastKajian.tempat && !lastKajian.materi) {
+        lastKajian.materi = kajian.materi
+        lastKajian.pemateri = kajian.pemateri
+        lastKajian.waktu_mulai = kajian.waktu_mulai
+        lastKajian.waktu_selesai = kajian.waktu_selesai
+        lastKajian.kontak = kajian.kontak
+        lastKajian.audience = kajian.audience
+        lastKajian.himbauan = kajian.himbauan
+        if (kajian.htm) lastKajian.htm = kajian.htm
+        if (kajian.registrasi) lastKajian.registrasi = kajian.registrasi
+        lastKajian.source_text += '\n--merged--\n' + block
+        continue
+      }
+
       // 🛡️ GHOST BLOCK FILTER: Jika 3 pilar utama (materi, pemateri, tempat) kosong melompong, 
-      // ini dipastikan footer catatan kaki / disclaimer. Abaikan dari daftar! (Kecuali jika ini status Libur)
-      if (!kajian.materi && !kajian.pemateri && !kajian.tempat && !kajian.is_cancelled) {
+      // atau hanya punya materi/tempat tapi sangat pendek (catatan kaki), abaikan!
+      const hasCoreInfo = kajian.materi || kajian.pemateri || kajian.tempat
+      const isTooShort = block.length < 10 && !kajian.is_cancelled
+      
+      if (!hasCoreInfo || isTooShort) {
         continue
       }
       
