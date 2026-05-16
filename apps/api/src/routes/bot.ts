@@ -1,5 +1,6 @@
 // REBUILD_TRIGGER: smart block reunification (merge fragmented masjid/materi blocks)
 // REBUILD_TRIGGER: fix TS assignment error in reunification logic & finalize parser stability
+// REBUILD_TRIGGER: implement trailing fragment stitching for long Telegram messages burst
 import { Hono } from 'hono'
 import { Bot, InlineKeyboard, webhookCallback } from 'grammy'
 import { supabase } from '../lib/supabase.js'
@@ -23,6 +24,7 @@ type MessageBuffer = {
   resolver: ((value: string) => void) | null
 }
 const userMessageBuffers = new Map<number, MessageBuffer>()
+const trailingFragments = new Map<number, string>()
 
 // ---- Bot instance (null jika token belum diset) ----
 const bot = token ? new Bot(token) : null
@@ -341,8 +343,20 @@ if (bot) {
 
     rawTextToParse = mergedText
 
+    // 🧩 STITCHING ENGINE: Cek apakah ada potongan teks yang tertinggal dari "ledakan" pesan sebelumnya
+    const fragment = trailingFragments.get(userId)
+    if (fragment) {
+      rawTextToParse = fragment + '\n' + rawTextToParse
+      trailingFragments.delete(userId)
+    }
+
     // Parse teks kajian (SEKARANG SUDAH DIJAMIN UTUH, TERSAMBUNG & TIDAK ADA BLOK TERBELAH!)
     const result = parseMessage(rawTextToParse)
+
+    // Jika ada potongan teks menggantung di akhir, simpan untuk dijahit ke pesan berikutnya!
+    if (result.trailing_fragment) {
+      trailingFragments.set(userId, result.trailing_fragment)
+    }
 
     if (!result.success || result.kajian_list.length === 0) {
       await ctx.reply(

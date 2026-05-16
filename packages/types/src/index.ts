@@ -53,6 +53,7 @@ export type Kajian = {
 export type ParseResult = {
   success: boolean
   kajian_list: Kajian[]
+  trailing_fragment?: string
   errors: ParseError[]
   raw_text: string
 }

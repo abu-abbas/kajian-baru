@@ -153,7 +153,7 @@ export function parseMessage(rawText: string): ParseResult {
         continue
       }
       
-      kajianList.push(kajian)
+    kajianList.push(kajian)
     } catch (err) {
       errors.push({
         block_index: i,
@@ -163,9 +163,20 @@ export function parseMessage(rawText: string): ParseResult {
     }
   }
 
+  // 🧩 TRAILING FRAGMENT DETECTOR: Jika blok terakhir "Tanpa Judul" (cuma punya masjid/tempat),
+  // atau ada sisa teks yang tidak sempat diproses, kembalikan sebagai fragment untuk dijahit nanti!
+  let trailingFragment = ''
+  const lastParsed = kajianList[kajianList.length - 1]
+  if (lastParsed && !lastParsed.materi && !lastParsed.pemateri && lastParsed.tempat) {
+    // Ini blok menggantung! Buang dari list dan jadikan fragment.
+    trailingFragment = lastParsed.source_text
+    kajianList.pop()
+  }
+
   return {
-    success: kajianList.length > 0,
+    success: kajianList.length > 0 || trailingFragment.length > 0,
     kajian_list: kajianList,
+    trailing_fragment: trailingFragment,
     errors,
     raw_text: rawText,
   }
