@@ -137,7 +137,7 @@ export function parseMessage(rawText: string): ParseResult {
         lastKajian.waktu_selesai = kajian.waktu_selesai
         lastKajian.kontak = kajian.kontak
         lastKajian.audience = kajian.audience
-        lastKajian.himbauan = kajian.himbauan
+        if (kajian.himbauan) lastKajian.himbauan = kajian.himbauan
         if (kajian.htm) lastKajian.htm = kajian.htm
         if (kajian.registrasi) lastKajian.registrasi = kajian.registrasi
         lastKajian.source_text += '\n--merged--\n' + block
