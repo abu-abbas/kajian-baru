@@ -24,7 +24,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
  * 🚀 Mendaftarkan Service Worker (/sw.js) ke browser
  */
 export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || typeof Notification === 'undefined') {
     console.warn('⚠️ Browser ini tidak mendukung fitur Notifikasi Web Push.')
     return null
   }
@@ -63,7 +63,14 @@ export async function subscribeUserToPush(): Promise<{ success: boolean; error?:
       return { success: false, error: 'Gagal mengaktifkan pengendali notifikasi browser (SW).' }
     }
 
-    // 3. Panggil Dialog Izin Browser
+    // 3. Panggil Dialog Izin Browser (Safety Check untuk iPhone/Safari)
+    if (typeof Notification === 'undefined') {
+      return { 
+        success: false, 
+        error: 'Browser Anda tidak mendukung notifikasi. Di iPhone, silakan ketuk "Share" lalu "Add to Home Screen" untuk mengaktifkan fitur ini.' 
+      }
+    }
+
     const permission = await Notification.requestPermission()
     if (permission !== 'granted') {
       return { success: false, error: 'Izin notifikasi diblokir. Mohon aktifkan manual di pengaturan gembok alamat browser.' }
@@ -150,7 +157,7 @@ export async function unsubscribeUserFromPush(): Promise<{ success: boolean }> {
  * 🔍 Memeriksa status aktif subscription saat ini di browser
  */
 export async function getPushSubscriptionStatus(): Promise<boolean> {
-  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false
+  if (!('serviceWorker' in navigator) || !('PushManager' in window) || typeof Notification === 'undefined') return false
 
   try {
     const registration = await navigator.serviceWorker.getRegistration()
