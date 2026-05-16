@@ -56,7 +56,10 @@ trigger: always_on
   - Audience extracted dari tanda kurung di akhir teks kajian. HARUS mendukung tipe audiens `ANAK` secara native.
   - Waktu mulai dan selesai harus dilucuti dari sisa tag audiens seperti `(kajian anak)` agar bersih saat dirender.
   - Mampu mendeteksi secara presisi field khusus ekstra seperti `HTM` (Harga Tiket/Infaq) dan `Registrasi` (Link pendaftaran) agar tidak tumpang tindih dengan Kontak CP utama.
+  - **Lenient Field Detection**: Regex deteksi field (Materi, Pemateri, dll) WAJIB menggunakan pola `[^:：\-–]*` sebelum separator guna mentoleransi spasi hantu, titik, atau ornamen bullet di antara label dan data!
+  - **Smart Block Reunification**: Parser WAJIB memiliki logika "menjahit kembali" blok yang terpisah (misal: blok nama masjid yang terpisah dari blok materi) secara otomatis di level runtime parsing.
 - **Synchronized Extraction Engine**: Seluruh jalur parsing data masuk (baik dari form Admin Website maupun pesan masuk Bot Telegram) WAJIB memanggil shared library terpusat `@kajian-baru/parser` guna menjamin konsistensi ekstraksi teks absolut!
+- **Telegram Message Stitching**: Bot WAJIB mengimplementasikan `trailing_fragment` buffer untuk menangani keterbatasan 4096 karakter Telegram. Jika sebuah pesan berakhir dengan blok menggantung (Tanpa Judul), potongan tersebut WAJIB disimpan dan dijahit ke awal pesan berikutnya dari user yang sama!
 
 ## UI Rules
 - UI must follow `shadcn-ui` principles FIRST — always use primitive UI components from `apps/web/src/components/ui/`
@@ -65,7 +68,8 @@ trigger: always_on
 - Warna tema: nuansa hijau islami, tidak norak (gunakan primary `hsl(142 72% 29%)`)
 - KajianCard tanpa poster: tampilkan gradient dari `gradient_config`
 - KajianCard dengan poster: poster sebagai background dengan overlay gelap
-- **Runtime Visual Scrubbing**: Setiap rendering field data kajian (Materi, Pemateri, Tempat, dll) harus dibersihkan menggunakan helper terpusat `cleanVisual()` untuk menghapus tag label warisan masa lalu secara case-insensitive dan toleran terhadap sisa emoji/variation selectors.
+- **Ergonomic Information Hierarchy**: Pada `KajianCard`, informasi Tanggal WAJIB diletakkan di atas Jam di dalam grid informasi utama untuk kenyamanan baca pengguna hape.
+- **Runtime Visual Scrubbing**: Setiap rendering field data kajian (Materi, Pemateri, Tempat, dll) harus dibersihkan menggunakan helper terpusat `cleanVisual()` untuk menghapus tag label warisan masa lalu secara case-insensitive dan toleran terhadap sisa emoji/variation selectors (termasuk ornamen bullet `》`).
 - **Smart Address Decoupler**: Setiap rendering `Tempat / Lokasi` di UI (kartu depan & dialog detail) WAJIB dilewatkan ke helper `splitTempatAddress()` di `utils.ts` untuk memisahkan Nama Venue (Bold) dari alamat fisik/jalan (Normal, Kecil, Tipis) secara dinamis! Ini sangat krusial agar keyword follow user tetap bersih dan visual terparkir sangat rapi!
 - **Seamless Multi-Session Support**: Komponen visual utama seperti `KajianCard` dan `KajianDetailDialog` harus dirancang fleksibel untuk menerima data homogen tunggal `Kajian` ATAU array grup ganda `Kajian[]`. Gunakan internal `activeIdx` state untuk navigasi antar-sesi, dan pastikan tombol follow/aksi secara realtime mengikuti context sesi yang sedang aktif!
 - Loading state harus selalu ada untuk setiap async operation

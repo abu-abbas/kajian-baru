@@ -70,4 +70,7 @@ Komponen visual andalan (`KajianCard` dan `KajianDetailDialog`) dirancang elasti
 ### Absolute Zero-Emoji Standard
 Dilarang keras menyisipkan emoji mentah Unicode/sistem (seperti 🏠, 📍, ⚠️) ke dalam label UI, button, atau indikator kartu. Seluruh penanda visual WAJIB dirender menggunakan ikon vector berkelas dari **Lucide React** demi menjaga konsistensi visual premium!
 
+### Ergonomic Information Hierarchy
+Pada komponen grid informasi (seperti di dalam `KajianCard`), informasi **Tanggal** WAJIB diletakkan di atas **Jam**. Ini untuk memastikan hirarki baca yang lebih logis bagi pengguna (mengetahui 'Kapan' harinya dulu sebelum 'Jam' spesifiknya) serta meningkatkan keterbacaan pada layar ponsel yang sempit.
+
 

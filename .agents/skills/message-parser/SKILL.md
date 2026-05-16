@@ -206,4 +206,7 @@ function generateGradient(tempat: string): GradientConfig {
   1. Cek pembatas baris fisik (`\n`) -> Baris pertama Nama Venue, sisanya Alamat.
   2. Cek transisi menuju penanda jalan (`Jl.` / `Jalan`) -> Belah kalimat di titik transisi tersebut!
 - **Field HTM & Registrasi**: Parser harus bisa mengekstrak informasi biaya tiket/infaq (HTM) dan tautan formulir pendaftaran (Registrasi) secara terpisah dari Kontak CP biasa.
+- **Smart Block Reunification**: Parser wajib mengimplementasikan pola *look-back* di dalam *loop* `parseMessage`. Jika blok saat ini memiliki data materi/pemateri namun tidak memiliki nama tempat (Masjid), dan blok sebelumnya adalah blok "Tanpa Judul" yang hanya berisi nama tempat, maka kedua blok tersebut harus dijahit menjadi satu kesatuan data kajian yang lengkap.
+- **Trailing Fragment Stitching**: Parser harus mampu mengidentifikasi blok menggantung di akhir pesan (misal: blok yang terpotong oleh limit karakter Telegram) dan mengembalikannya sebagai properti `trailing_fragment`. Data ini akan digunakan oleh layer Bot untuk melakukan "penjahitan pesan" (*message stitching*) pada pesan berikutnya yang masuk dari pengguna yang sama.
+- **Lenient Field Regex**: Seluruh fungsi `stripPrefixTags` atau regex deteksi field (Materi, Pemateri, Tempat, dll) WAJIB menggunakan pola `[^:：\-–]*` di antara label dan separator untuk mengakomodasi variasi spasi, titik, atau bullet (seperti `》`) yang sering disisipkan pengguna.
 
