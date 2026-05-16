@@ -324,15 +324,16 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
     }
 
     // -- Field Detectors (Berbasis Emoji & Kata Kunci Indonesia) --
-    const isMateri = line.includes('📚') || line.match(/^(?:》|>\s*)?(?:Materi|Tema|Judul|Kajian|Sesi\s+\d)[\s\w]*[:：\-–]/i)
-    const isPemateri = line.includes('🎙️') || line.includes('🎙') || line.match(/^(?:》|>\s*)?(?:Pemateri|Penceramah|Narasumber|Bersama|Oleh)[\s\w]*[:：\-–]/i)
-    const isWaktu = line.includes('🕰️') || line.includes('🕰') || line.match(/^(?:》|>\s*)?(?:Waktu|Jam|Pukul)[\s\w]*[:：\-–]/i)
-    const isTempat = line.includes('🕌') || line.includes('🏡') || line.includes('🏢') || line.includes('🏛️') || line.match(/^(?:》|>\s*)?(?:Tempat|Lokasi)[\s\w]*[:：\-–]/i)
-    const isAlamat = line.includes('📍') || line.includes('🗺️') || line.includes('🌏') || line.match(/^(?:》|>\s*)?(?:Alamat|Maps|Google Maps|G-maps)[\s\w]*[:：\-–]/i)
-    const isKontak = line.includes('📞') || line.match(/^(?:》|>\s*)?(?:Info|Kontak|Hubungi|WA|Telp|CP)[\s\w]*[:：\-–]/i)
-    const isHimbauan = line.includes('⚠️') || line.includes('📣') || line.includes('📢') || line.includes('🚫') || line.includes('💡') || line.match(/^(?:》|>\s*)?(?:Himbauan|Catatan|NB|Perhatian)[\s\w]*[:：\-–]/i)
-    const isHtm = line.match(/^(?:》|>\s*)?(?:HTM|Biaya|Tiket|Infaq)[\s\w]*[:：\-–]/i)
-    const isRegistrasi = line.match(/^(?:》|>\s*)?(?:Registrasi|Daftar|Pendaftaran|Link)[\s\w]*[:：\-–]/i)
+    // Perbaikan Regex: Menggunakan (?:[》>]+[\s]*)? agar spasi setelah 》 (misal "》 Pemateri") dapat tertangkap!
+    const isMateri = line.includes('📚') || line.match(/^(?:[》>]+[\s]*)?(?:Materi|Tema|Judul|Kajian|Sesi\s+\d)[\s\w]*[:：\-–]/i)
+    const isPemateri = line.includes('🎙️') || line.includes('🎙') || line.match(/^(?:[》>]+[\s]*)?(?:Pemateri|Penceramah|Narasumber|Bersama|Oleh)[\s\w]*[:：\-–]/i)
+    const isWaktu = line.includes('🕰️') || line.includes('🕰') || line.match(/^(?:[》>]+[\s]*)?(?:Waktu|Jam|Pukul)[\s\w]*[:：\-–]/i)
+    const isTempat = line.includes('🕌') || line.includes('🏡') || line.includes('🏢') || line.includes('🏛️') || line.match(/^(?:[》>]+[\s]*)?(?:Tempat|Lokasi)[\s\w]*[:：\-–]/i)
+    const isAlamat = line.includes('📍') || line.includes('🗺️') || line.includes('🌏') || line.match(/^(?:[》>]+[\s]*)?(?:Alamat|Maps|Google Maps|G-maps)[\s\w]*[:：\-–]/i)
+    const isKontak = line.includes('📞') || line.match(/^(?:[》>]+[\s]*)?(?:Info|Kontak|Hubungi|WA|Telp|CP)[\s\w]*[:：\-–]/i)
+    const isHimbauan = line.includes('⚠️') || line.includes('📣') || line.includes('📢') || line.includes('🚫') || line.includes('💡') || line.match(/^(?:[》>]+[\s]*)?(?:Himbauan|Catatan|NB|Perhatian)[\s\w]*[:：\-–]/i)
+    const isHtm = line.match(/^(?:[》>]+[\s]*)?(?:HTM|Biaya|Tiket|Infaq)[\s\w]*[:：\-–]/i)
+    const isRegistrasi = line.match(/^(?:[》>]+[\s]*)?(?:Registrasi|Daftar|Pendaftaran|Link)[\s\w]*[:：\-–]/i)
 
     if (isMateri) {
       materiRaw = line
@@ -430,12 +431,12 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
 
   // Pencucian Himbauan Premium
   let finalHimbauan = himbauanRaw
-    .replace(/^(?:》|>\s*)?(?:Himbauan|Catatan|NB|Perhatian)\s*[:：\-–]?\s*/i, '')
+    .replace(/^(?:[》>]+[\s]*)?(?:Himbauan|Catatan|NB|Perhatian)\s*[:：\-–]?\s*/i, '')
     .replace(/(?:⚠️|📣|📢|🚫|💡)\s*/g, '')
     .trim()
 
-  const finalHtm = htmRaw.replace(/^(?:》|>\s*)?(?:HTM|Biaya|Tiket|Infaq)\s*[:：\-–]?\s*/i, '').trim()
-  const finalRegistrasi = registrasiRaw.replace(/^(?:》|>\s*)?(?:Registrasi|Daftar|Pendaftaran|Link)\s*[:：\-–]?\s*/i, '').trim()
+  const finalHtm = htmRaw.replace(/^(?:[》>]+[\s]*)?(?:HTM|Biaya|Tiket|Infaq)\s*[:：\-–]?\s*/i, '').trim()
+  const finalRegistrasi = registrasiRaw.replace(/^(?:[》>]+[\s]*)?(?:Registrasi|Daftar|Pendaftaran|Link)\s*[:：\-–]?\s*/i, '').trim()
 
   if (!finalHimbauan) {
     finalHimbauan = extractHimbauan(block)
