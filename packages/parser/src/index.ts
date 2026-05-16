@@ -313,7 +313,11 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
 
   let lastField = ''
 
-  for (const line of lines) {
+  for (const l of lines) {
+    if (!l) continue
+    
+    // 🧹 Sapu bersih spasi hantu zero-width & invisible characters sebelum deteksi field!
+    const line = l.replace(/[\u200b-\u200d\ufeff\ufe00-\ufe0f]/g, '').trim()
     if (!line) continue
 
     // 🌍 Instant Maps Match: Jika baris murni berisi tautan Google Maps saja
@@ -324,16 +328,16 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
     }
 
     // -- Field Detectors (Berbasis Emoji & Kata Kunci Indonesia) --
-    // Perbaikan Regex: Menggunakan (?:[》>]+[\s]*)? agar spasi setelah 》 (misal "》 Pemateri") dapat tertangkap!
-    const isMateri = line.includes('📚') || line.match(/^(?:[》>]+[\s]*)?(?:Materi|Tema|Judul|Kajian|Sesi\s+\d)[\s\w]*[:：\-–]/i)
-    const isPemateri = line.includes('🎙️') || line.includes('🎙') || line.match(/^(?:[》>]+[\s]*)?(?:Pemateri|Penceramah|Narasumber|Bersama|Oleh)[\s\w]*[:：\-–]/i)
-    const isWaktu = line.includes('🕰️') || line.includes('🕰') || line.match(/^(?:[》>]+[\s]*)?(?:Waktu|Jam|Pukul)[\s\w]*[:：\-–]/i)
-    const isTempat = line.includes('🕌') || line.includes('🏡') || line.includes('🏢') || line.includes('🏛️') || line.match(/^(?:[》>]+[\s]*)?(?:Tempat|Lokasi)[\s\w]*[:：\-–]/i)
-    const isAlamat = line.includes('📍') || line.includes('🗺️') || line.includes('🌏') || line.match(/^(?:[》>]+[\s]*)?(?:Alamat|Maps|Google Maps|G-maps)[\s\w]*[:：\-–]/i)
-    const isKontak = line.includes('📞') || line.match(/^(?:[》>]+[\s]*)?(?:Info|Kontak|Hubungi|WA|Telp|CP)[\s\w]*[:：\-–]/i)
-    const isHimbauan = line.includes('⚠️') || line.includes('📣') || line.includes('📢') || line.includes('🚫') || line.includes('💡') || line.match(/^(?:[》>]+[\s]*)?(?:Himbauan|Catatan|NB|Perhatian)[\s\w]*[:：\-–]/i)
-    const isHtm = line.match(/^(?:[》>]+[\s]*)?(?:HTM|Biaya|Tiket|Infaq)[\s\w]*[:：\-–]/i)
-    const isRegistrasi = line.match(/^(?:[》>]+[\s]*)?(?:Registrasi|Daftar|Pendaftaran|Link)[\s\w]*[:：\-–]/i)
+    // Perbaikan Regex: Menggunakan (?:[》>\-\•]+[\s]*)? agar spasi/bullet setelah simbol dapat tertangkap!
+    const isMateri = line.includes('📚') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Materi|Tema|Judul|Kajian|Sesi\s+\d)[\s\w]*[:：\-–]/i)
+    const isPemateri = line.includes('🎙️') || line.includes('🎙') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Pemateri|Penceramah|Narasumber|Bersama|Oleh)[\s\w]*[:：\-–]/i)
+    const isWaktu = line.includes('🕰️') || line.includes('🕰') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Waktu|Jam|Pukul)[\s\w]*[:：\-–]/i)
+    const isTempat = line.includes('🕌') || line.includes('🏡') || line.includes('🏢') || line.includes('🏛️') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Tempat|Lokasi)[\s\w]*[:：\-–]/i)
+    const isAlamat = line.includes('📍') || line.includes('🗺️') || line.includes('🌏') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Alamat|Maps|Google Maps|G-maps)[\s\w]*[:：\-–]/i)
+    const isKontak = line.includes('📞') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Info|Kontak|Hubungi|WA|Telp|CP)[\s\w]*[:：\-–]/i)
+    const isHimbauan = line.includes('⚠️') || line.includes('📣') || line.includes('📢') || line.includes('🚫') || line.includes('💡') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Himbauan|Catatan|NB|Perhatian)[\s\w]*[:：\-–]/i)
+    const isHtm = line.match(/^(?:[》>\-•]+[\s]*)?(?:HTM|Biaya|Tiket|Infaq)[\s\w]*[:：\-–]/i)
+    const isRegistrasi = line.match(/^(?:[》>\-•]+[\s]*)?(?:Registrasi|Daftar|Pendaftaran|Link)[\s\w]*[:：\-–]/i)
 
     if (isMateri) {
       materiRaw = line
@@ -351,7 +355,7 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
       const innerMaps = line.match(/(https?:\/\/(?:maps\.google\.com|goo\.gl|maps\.app\.goo\.gl)\S+)/i)
       if (innerMaps) mapsStandalone = innerMaps[1] ?? ''
       alamatStandalone = line
-        .replace(/^(?:》|>\s*)?(?:Alamat|Maps|Google Maps|G-maps)\s*[:：\-–]?\s*/i, '')
+        .replace(/^(?:[》>\-•]+[\s]*)?(?:Alamat|Maps|Google Maps|G-maps)\s*[:：\-–]?\s*/i, '')
         .replace(/(?:📍|🗺️|🌏)\s*/g, '')
         .replace(/(https?:\/\/\S+)/g, '')
         .trim()
@@ -431,12 +435,12 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
 
   // Pencucian Himbauan Premium
   let finalHimbauan = himbauanRaw
-    .replace(/^(?:[》>]+[\s]*)?(?:Himbauan|Catatan|NB|Perhatian)\s*[:：\-–]?\s*/i, '')
+    .replace(/^(?:[》>\-•]+[\s]*)?(?:Himbauan|Catatan|NB|Perhatian)\s*[:：\-–]?\s*/i, '')
     .replace(/(?:⚠️|📣|📢|🚫|💡)\s*/g, '')
     .trim()
-
-  const finalHtm = htmRaw.replace(/^(?:[》>]+[\s]*)?(?:HTM|Biaya|Tiket|Infaq)\s*[:：\-–]?\s*/i, '').trim()
-  const finalRegistrasi = registrasiRaw.replace(/^(?:[》>]+[\s]*)?(?:Registrasi|Daftar|Pendaftaran|Link)\s*[:：\-–]?\s*/i, '').trim()
+ 
+  const finalHtm = htmRaw.replace(/^(?:[》>\-•]+[\s]*)?(?:HTM|Biaya|Tiket|Infaq)\s*[:：\-–]?\s*/i, '').trim()
+  const finalRegistrasi = registrasiRaw.replace(/^(?:[》>\-•]+[\s]*)?(?:Registrasi|Daftar|Pendaftaran|Link)\s*[:：\-–]?\s*/i, '').trim()
 
   if (!finalHimbauan) {
     finalHimbauan = extractHimbauan(block)
@@ -518,8 +522,10 @@ function stripPrefixTags(str: string, keywordsPattern: string): string {
   // Sapu bersih zero-width spaces (\u200b dll) yang sering ikut ter-copypaste dari WA/Telegram
   const cleanStr = str.replace(/[\u200b-\u200d\ufeff\ufe00-\ufe0f]/g, '').trim()
   return cleanStr
-    .replace(/^(?:📚|🎙️|🎙|🕰️|🕰|🕌|🏡|🏢|🏛️|🏫|📞|📍|🗺️|🌏|⚠️|📣|📢|🚫|💡|》|>\s*)\s*/gu, '')
-    .replace(new RegExp(`^(?:${keywordsPattern})[\\s\\w]*[:：\\-–]?\\s*`, 'i'), '')
+    .replace(/^(?:📚|🎙️|🎙|🕰️|🕰|🕌|🏡|🏢|🏛️|🏫|📞|📍|🗺️|🌏|⚠️|📣|📢|🚫|💡|[》>\-•]+[\s]*)\s*/gu, '')
+    // 🔥 FIX GREEDY BUG: Gunakan non-greedy match [\\s\\w]*? dan pastikan ada pemisah (colon/dash) 
+    // agar isi materi/tema tidak ikut terhapus habis jika tidak mengandung simbol aneh!
+    .replace(new RegExp(`^(?:${keywordsPattern})[\\s\\w]*?[:：\\-–]\\s*`, 'i'), '')
     .trim()
 }
 

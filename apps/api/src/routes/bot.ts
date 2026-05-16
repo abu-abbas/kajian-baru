@@ -1,5 +1,6 @@
 // REBUILD_TRIGGER: Per-block source sensing
 // REBUILD_TRIGGER: Sync parser with ANAK audience, HTM, Registrasi fields & UI fixes
+// REBUILD_TRIGGER: fix greedy parsing bug (Tema/Pemateri missing)
 import { Hono } from 'hono'
 import { Bot, InlineKeyboard, webhookCallback } from 'grammy'
 import { supabase } from '../lib/supabase.js'
