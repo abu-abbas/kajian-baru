@@ -322,20 +322,17 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
 
     // 🌍 Instant Maps Match: Jika baris murni berisi tautan Google Maps saja
     const mapsUrlMatch = line.match(/^(?:🌏\s*G-maps\s*[:\-–]\s*)?(https?:\/\/(?:maps\.google\.com|goo\.gl|maps\.app\.goo\.gl)\S+)/i)
-    if (mapsUrlMatch && line.replace(mapsUrlMatch[0], '').trim() === '') {
-      mapsStandalone = mapsUrlMatch[1] ?? mapsUrlMatch[0]
-      continue
-    }
-
-    // -- Field Detectors (Berbasis Emoji & Kata Kunci Indonesia) --
-    // Perbaikan Regex: Menggunakan (?:[》>\-\•]+[\s]*)? agar spasi/bullet setelah simbol dapat tertangkap!
-    const isMateri = line.includes('📚') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Materi|Tema|Judul|Kajian|Sesi\s+\d)[\s\w]*[:：\-–]/i)
-    const isPemateri = line.includes('🎙️') || line.includes('🎙') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Pemateri|Penceramah|Narasumber|Bersama|Oleh)[\s\w]*[:：\-–]/i)
-    const isWaktu = line.includes('🕰️') || line.includes('🕰') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Waktu|Jam|Pukul)[\s\w]*[:：\-–]/i)
-    const isTempat = line.includes('🕌') || line.includes('🏡') || line.includes('🏢') || line.includes('🏛️') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Tempat|Lokasi)[\s\w]*[:：\-–]/i)
-    const isAlamat = line.includes('📍') || line.includes('🗺️') || line.includes('🌏') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Alamat|Maps|Google Maps|G-maps)[\s\w]*[:：\-–]/i)
-    const isKontak = line.includes('📞') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Info|Kontak|Hubungi|WA|Telp|CP)[\s\w]*[:：\-–]/i)
-    const isHimbauan = line.includes('⚠️') || line.includes('📣') || line.includes('📢') || line.includes('🚫') || line.includes('💡') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Himbauan|Catatan|NB|Perhatian)[\s\w]*[:：\-–]/i)
+    if (mapsUrlMatch && line.repl    // -- Field Detectors (Berbasis Emoji & Kata Kunci Indonesia) --
+    // Perbaikan Regex: Menggunakan [^:：\-–]* agar karakter apapun (termasuk spasi hantu/titik) sebelum separator tetap tertangkap!
+    const isMateri = line.includes('📚') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Materi|Tema|Judul|Kajian|Sesi\s+\d)[^:：\-–]*[:：\-–]/i)
+    const isPemateri = line.includes('🎙️') || line.includes('🎙') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Pemateri|Penceramah|Narasumber|Bersama|Oleh)[^:：\-–]*[:：\-–]/i)
+    const isWaktu = line.includes('🕰️') || line.includes('🕰') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Waktu|Jam|Pukul)[^:：\-–]*[:：\-–]/i)
+    const isTempat = line.includes('🕌') || line.includes('🏡') || line.includes('🏢') || line.includes('🏛️') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Tempat|Lokasi)[^:：\-–]*[:：\-–]/i)
+    const isAlamat = line.includes('📍') || line.includes('🗺️') || line.includes('🌏') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Alamat|Maps|Google Maps|G-maps)[^:：\-–]*[:：\-–]/i)
+    const isKontak = line.includes('📞') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Info|Kontak|Hubungi|WA|Telp|CP)[^:：\-–]*[:：\-–]/i)
+    const isHimbauan = line.includes('⚠️') || line.includes('📣') || line.includes('📢') || line.includes('🚫') || line.includes('💡') || line.match(/^(?:[》>\-•]+[\s]*)?(?:Himbauan|Catatan|NB|Perhatian)[^:：\-–]*[:：\-–]/i)
+    const isHtm = line.match(/^(?:[》>\-•]+[\s]*)?(?:HTM|Biaya|Tiket|Infaq)[^:：\-–]*[:：\-–]/i)
+    const isRegistrasi = line.match(/^(?:[》>\-•]+[\s]*)?(?:Registrasi|Daftar|Pendaftaran|Link)[^:：\-–]*[:：\-–]/i)atatan|NB|Perhatian)[\s\w]*[:：\-–]/i)
     const isHtm = line.match(/^(?:[》>\-•]+[\s]*)?(?:HTM|Biaya|Tiket|Infaq)[\s\w]*[:：\-–]/i)
     const isRegistrasi = line.match(/^(?:[》>\-•]+[\s]*)?(?:Registrasi|Daftar|Pendaftaran|Link)[\s\w]*[:：\-–]/i)
 
@@ -354,11 +351,14 @@ function parseBlock(block: string, header: HeaderInfo, currentRegion: string, _i
     } else if (isAlamat) {
       const innerMaps = line.match(/(https?:\/\/(?:maps\.google\.com|goo\.gl|maps\.app\.goo\.gl)\S+)/i)
       if (innerMaps) mapsStandalone = innerMaps[1] ?? ''
-      alamatStandalone = line
+      const cleanedAlamat = line
         .replace(/^(?:[》>\-•]+[\s]*)?(?:Alamat|Maps|Google Maps|G-maps)\s*[:：\-–]?\s*/i, '')
         .replace(/(?:📍|🗺️|🌏)\s*/g, '')
         .replace(/(https?:\/\/\S+)/g, '')
         .trim()
+      
+      // Smart Merging: Jangan menimpa alamat yang sudah ada (misal dari baris continuation sebelumnya)
+      alamatStandalone = alamatStandalone ? `${alamatStandalone}, ${cleanedAlamat}` : cleanedAlamat
       lastField = 'alamat'
     } else if (isKontak) {
       kontakRaw = line
@@ -523,9 +523,8 @@ function stripPrefixTags(str: string, keywordsPattern: string): string {
   const cleanStr = str.replace(/[\u200b-\u200d\ufeff\ufe00-\ufe0f]/g, '').trim()
   return cleanStr
     .replace(/^(?:📚|🎙️|🎙|🕰️|🕰|🕌|🏡|🏢|🏛️|🏫|📞|📍|🗺️|🌏|⚠️|📣|📢|🚫|💡|[》>\-•]+[\s]*)\s*/gu, '')
-    // 🔥 FIX GREEDY BUG: Gunakan non-greedy match [\\s\\w]*? dan pastikan ada pemisah (colon/dash) 
-    // agar isi materi/tema tidak ikut terhapus habis jika tidak mengandung simbol aneh!
-    .replace(new RegExp(`^(?:${keywordsPattern})[\\s\\w]*?[:：\\-–]\\s*`, 'i'), '')
+    // 🔥 FIX RELIABILITY: Gunakan [^:：\-–]*? agar karakter apapun sebelum separator tertangkap & terhapus!
+    .replace(new RegExp(`^(?:${keywordsPattern})[^:：\\-–]*?[:：\\-–]\\s*`, 'i'), '')
     .trim()
 }
 

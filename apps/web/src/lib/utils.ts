@@ -31,8 +31,8 @@ export const cleanVisual = (val: string | null | undefined, pattern: string, sho
   let cleanStr = val
     .replace(/[\u200b-\u200d\ufeff\ufe00-\ufe0f]/g, '') // Hancurkan spasi hantu & sisa emoji (Variation Selectors)!
     .trim()
-    .replace(/^(?:📚|🎙️|🎙|🕰️|🕰|🕌|📞|📍|🗺️|⚠️|📣|📢|🚫|💡)\s*/gu, '') // Sapu bersih emoji di awal teks!
-    .replace(new RegExp(`^(?:${pattern})\\s*[:：\\-–]?\\s*`, 'i'), '')
+    .replace(/^(?:📚|🎙️|🎙|🕰️|🕰|🕌|📞|📍|🗺️|🌏|⚠️|📣|📢|🚫|💡|[》>\-•]+[\s]*)\s*/gu, '') // Sapu bersih emoji & bullet di awal teks!
+    .replace(new RegExp(`^(?:${pattern})[^:：\\-–]*?[:：\\-–]?\\s*`, 'i'), '')
     .trim()
 
   // 🔥 HANCURKAN EMOJI GENDER/TOILET ANNOYING YANG MENGOTORI VISUAL!
