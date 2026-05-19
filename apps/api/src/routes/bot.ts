@@ -1,6 +1,7 @@
 // REBUILD_TRIGGER: smart block reunification (merge fragmented masjid/materi blocks)
 // REBUILD_TRIGGER: fix TS assignment error in reunification logic & finalize parser stability
 // REBUILD_TRIGGER: implement trailing fragment stitching for long Telegram messages burst
+// REBUILD_TRIGGER: resolve 400 Bad Request query is too old error by answering callback query early and catching errors gracefully
 import { Hono } from 'hono'
 import { Bot, InlineKeyboard, webhookCallback } from 'grammy'
 import { supabase } from '../lib/supabase.js'
@@ -204,12 +205,15 @@ if (bot) {
     // --- Approve/Reject user (admin only) ---
     if (data.startsWith('approve:') || data.startsWith('reject:')) {
       if (!isAdminChat(fromId)) {
-        await ctx.answerCallbackQuery({ text: '⛔ Hanya admin!' })
+        await ctx.answerCallbackQuery({ text: '⛔ Hanya admin!' }).catch(() => {})
         return
       }
 
       const targetId = Number(data.split(':')[1])
       const isApprove = data.startsWith('approve:')
+
+      // Jawab query secepatnya untuk menghentikan loading spinner di Telegram client
+      await ctx.answerCallbackQuery().catch(() => {})
 
       await supabase.from('bot_users')
         .update({
@@ -222,7 +226,7 @@ if (bot) {
         isApprove
           ? `✅ User ${String(targetId)} telah DISETUJUI.`
           : `❌ User ${String(targetId)} telah DITOLAK.`
-      )
+      ).catch(() => {})
 
       // Notify the user
       try {
@@ -234,7 +238,6 @@ if (bot) {
         )
       } catch { /* user may have blocked bot */ }
 
-      await ctx.answerCallbackQuery()
       return
     }
 
@@ -244,9 +247,12 @@ if (bot) {
       const kajianList = pendingParseResults.get(parseId)
 
       if (!kajianList || kajianList.length === 0) {
-        await ctx.answerCallbackQuery({ text: '⚠️ Data sudah kadaluarsa. Kirim ulang teks.' })
+        await ctx.answerCallbackQuery({ text: '⚠️ Data sudah kadaluarsa. Kirim ulang teks.' }).catch(() => {})
         return
       }
+
+      // Jawab query secepatnya sebelum melakukan operasi DB yang lambat/berat agar tidak timeout
+      await ctx.answerCallbackQuery().catch(() => {})
 
       try {
         // 🛡️ JALANKAN DEDUPLIKASI CERDAS & PERTAHANAN SPAM (Set published: false, butuh review admin!)
@@ -265,12 +271,10 @@ if (bot) {
           statusText += `\n💡 Data tersimpan sebagai Draft. Silakan approve di Website Admin!`
         }
 
-        await ctx.editMessageText(statusText, { parse_mode: 'HTML' })
-        await ctx.answerCallbackQuery({ text: '✅ Selesai!' })
+        await ctx.editMessageText(statusText, { parse_mode: 'HTML' }).catch(() => {})
       } catch (err) {
         const errMsg = err instanceof Error ? err.message : 'Internal error'
-        await ctx.editMessageText(`❌ Gagal menyimpan: ${errMsg}`)
-        await ctx.answerCallbackQuery()
+        await ctx.editMessageText(`❌ Gagal menyimpan: ${errMsg}`).catch(() => {})
       }
       return
     }
@@ -279,12 +283,12 @@ if (bot) {
     if (data.startsWith('discard:')) {
       const parseId = data.replace('discard:', '')
       pendingParseResults.delete(parseId)
-      await ctx.editMessageText('🗑️ Data parsing dibuang.')
-      await ctx.answerCallbackQuery()
+      await ctx.answerCallbackQuery().catch(() => {})
+      await ctx.editMessageText('🗑️ Data parsing dibuang.').catch(() => {})
       return
     }
 
-    await ctx.answerCallbackQuery()
+    await ctx.answerCallbackQuery().catch(() => {})
   })
 
   // ---- Text message handler (parse kajian) ----
